@@ -1,0 +1,1 @@
+Info_2CH.cfg,Info_4CH.cfg,MANDATORY_CITATION.md,_2CH_ED.nii.gz,_2CH_ED_gt.nii.gz,_2CH_ES.nii.gz,_2CH_ES_gt.nii.gz,_2CH_half_sequence.nii.gz,_2CH_half_sequence_gt.nii.gz,_4CH_ED.nii.gz,_4CH_ED_gt.nii.gz,_4CH_ES.nii.gz,_4CH_ES_gt.nii.gz,_4CH_half_sequence.nii.gz,_4CH_half_sequence_gt.nii.gz
