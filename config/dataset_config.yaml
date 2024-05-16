@@ -1,0 +1,3 @@
+root: "data"
+device: "cuda"
+type: "N 4CH"
