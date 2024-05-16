@@ -20,7 +20,6 @@ class CAMUS(data.Dataset):
 
     def get_data(self):
         dataset_dir = self.root + "/database"
-        print(dataset_dir)
         img_list = glob.glob(f"{dataset_dir}/*/*4CH_ED.nii")
         img_list.extend(glob.glob(f"{dataset_dir}/*/*4CH_ES.nii"))
         mask_list = glob.glob(f"{dataset_dir}/*/*4CH_ED_gt.nii")
@@ -32,9 +31,8 @@ class CAMUS(data.Dataset):
         return len(self.data)
 
     def __getitem__(self, item):
-        print(self.data[item])
         img = nib.load(self.data[item])
-        img = np.array(np.transpose(img.get_fdata()), dtype=np.uint8)
+        img = np.array(np.transpose(img.get_fdata()), dtype=np.float32)
         mask = nib.load(self.labels[item])
         mask = np.array(np.transpose(mask.get_fdata()), dtype=np.uint8)
         mask = np.where(mask == 1, mask, 0)
