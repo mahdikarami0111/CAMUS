@@ -4,6 +4,7 @@ import gzip
 import nibabel as nib
 import glob
 import shutil
+import cv2
 
 
 def check_dataset_integrity(data_path, print_results=False):
@@ -48,8 +49,33 @@ def unzip_subject(path, dest_path):
     dest_subject_path = dest_path+"/"+subject
     os.mkdir(dest_subject_path)
     for file in file_list:
-        print(f"unzipping patient: {subject}")
         if file.endswith('.gz'):
             with gzip.open(path + "/" + file, 'rb') as zipped:
                 with open(dest_subject_path + "/" + file[:-3], 'wb') as unzipped:
                     shutil.copyfileobj(zipped, unzipped)
+
+
+def convert_subject_to_jpg(path, dest_path, base_transform):
+    file_list = os.listdir(path)
+    subject = path[-11:]
+    dest_subject_path = dest_path + "/" + subject
+    os.mkdir(dest_subject_path)
+    # only do 4ch ed and es for now to see if there will be any memory improvements
+    for file in file_list:
+        if "4CH_ED" in file or "4CH_ES" in file:
+            if "gt" in file:
+                continue
+            file_path = path + "/" + file
+            img = nib.load(file_path)
+            img = np.array(np.transpose(img.get_fdata()))
+            img = base_transform(image=img)
+            final_path = dest_subject_path + "/" + file[:-3] + "jpg"
+            cv2.imwrite(final_path, img["image"])
+
+
+def convert_dataset_to_jpg(source_path, dest_path, base_transform):
+    os.mkdir(dest_path)
+    for subject in os.listdir(source_path):
+        convert_subject_to_jpg(os.path.join(source_path, subject), dest_path, base_transform)
+
+
