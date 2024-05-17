@@ -3,7 +3,7 @@ import nibabel as nib
 import numpy as np
 import torchvision.transforms as torch_transforms
 import torch
-from tools.image import *
+from utils.image import *
 from torch.utils import data
 import cv2
 import albumentations as A
@@ -17,6 +17,7 @@ class CAMUS(data.Dataset):
         self.transform = transform
         self.data, self.labels = self.get_data()
         self.basic_transform = torch_transforms.ToTensor()
+        self.normalize = torch_transforms.Normalize([0.5], [0.5])
 
     def get_data(self):
         dataset_dir = self.root + "/database"
@@ -34,11 +35,14 @@ class CAMUS(data.Dataset):
         img = nib.load(self.data[item])
         img = np.array(np.transpose(img.get_fdata()), dtype=np.float32)
         mask = nib.load(self.labels[item])
-        mask = np.array(np.transpose(mask.get_fdata()), dtype=np.uint8)
+        mask = np.array(np.transpose(mask.get_fdata()), dtype=np.float32)
         mask = np.where(mask == 1, mask, 0)
         img_tensor = self.transform(image=img, mask=mask)
+        img = self.normalize(img_tensor['image'])
+        mask = img_tensor['mask']
+        mask = mask.unsqueeze(0)
         #show_tensor_img(img_tensor['image'], img_tensor['mask'])
-        return img_tensor['image'], img_tensor['mask']
+        return img, mask
 
 
 
