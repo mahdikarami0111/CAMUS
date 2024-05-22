@@ -1,12 +1,11 @@
 import glob
 import nibabel as nib
-import numpy as np
 import torchvision.transforms as torch_transforms
-import torch
-from utils.image import *
+import numpy as np
 from torch.utils import data
-import cv2
 import albumentations as A
+from utils.image import*
+from albumentations.pytorch import ToTensorV2
 
 
 class CAMUS(data.Dataset):
@@ -41,7 +40,7 @@ class CAMUS(data.Dataset):
         img = self.normalize(img_tensor['image'])
         mask = img_tensor['mask']
         mask = mask.unsqueeze(0)
-        #show_tensor_img(img_tensor['image'], img_tensor['mask'])
+        # show_tensor_img(img_tensor['image'], img_tensor['mask'])
         return img, mask
 
 
