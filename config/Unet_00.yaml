@@ -1,0 +1,20 @@
+DEVICE: "cuda"
+MODEL: "Unet"
+LOSS: "BCEL"
+OPTIMIZER:
+  NAME: "ADAM"
+  LR: 0.02
+SCHEDULER:
+  NAME: "EXPONENTIAL"
+  GAMMA: 0.95
+DATA:
+  root: "data"
+  device: "cuda"
+  type: "N 4CH"
+TRANSFORM: "default"
+TRAIN:
+  TRAIN: 0.7
+  TEST: 0.15
+  VAL: 0.15
+  BATCH_SIZE: 16
+  EPOCHS: 50

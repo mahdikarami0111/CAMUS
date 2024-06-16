@@ -27,11 +27,11 @@ def compare_masks(img, pred, mask):
     pred = np.array(pred)
     pred = pred.astype('uint8')
     plt.imshow(img, cmap='gray')
-    plt.imshow(np.ma.masked_where(mask == 0, mask), alpha=0.2)
+    plt.imshow(np.ma.masked_where(mask == 0, mask), alpha=0.5)
     plt.title("Mask")
     fig.add_subplot(1, 2, 2)
     plt.imshow(img, cmap='gray')
-    plt.imshow(np.ma.masked_where(pred == 0, pred), alpha=0.2)
+    plt.imshow(np.ma.masked_where(pred == 0, pred), alpha=0.5)
     plt.title("Prediction")
     plt.show()
 

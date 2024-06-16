@@ -18,6 +18,8 @@ from dataset import CAMUS
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from utils.debug import*
+from train import train
+from dotmap import DotMap
 
 # img = nib.load("data/database/patient0001/patient0001_4CH_ES.nii")
 # nii_data = np.array(np.transpose(img.get_fdata()), dtype=np.uint8)
@@ -26,32 +28,33 @@ from utils.debug import*
 # cv2.waitKey(0)
 # do_stuff("data/database/patient0001/patient0001_2CH_ES.nii", "data/database/patient0001/patient0001_2CH_ES_gt.nii")
 if __name__ == '__main__':
-    with open("config/dataset_config.yaml", 'r') as cfg:
-        temp = yaml.safe_load(cfg)
-
+    with open("config/Unet_00.yaml", 'r') as cfg:
+        cfg = yaml.safe_load(cfg)
+    print(cfg)
+    train(DotMap(cfg))
     # crop_ratio = 1.0
-    input_size = 224
-    device = "cuda"
-    input_transformer = A.Compose([
-        # A.HorizontalFlip(p=0.5),
-        # A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30, p=1.0),
-        A.Resize(height=input_size, width=input_size),
-        ToTensorV2(),
-        ])
+    # input_size = 224
+    # device = "cuda"
+    # input_transformer = A.Compose([
+    #     # A.HorizontalFlip(p=0.5),
+    #     # A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30, p=1.0),
+    #     A.Resize(height=input_size, width=input_size),
+    #     ToTensorV2(),
+    #     ])
 
-    dataset = CAMUS(temp, input_transformer)
-    train_set, test_set = torch.utils.data.random_split(dataset, [0.7, 0.3])
-
-    train_loader = DataLoader(train_set, shuffle=True, batch_size=8, pin_memory=True)
-    test_loader = DataLoader(test_set, shuffle=True, batch_size=8, pin_memory=True)
+    # dataset = CAMUS(temp, input_transformer)
+    # train_set, test_set = torch.utils.data.random_split(dataset, [0.7, 0.3])
+    #
+    # train_loader = DataLoader(train_set, shuffle=True, batch_size=8, pin_memory=True)
+    # test_loader = DataLoader(test_set, shuffle=True, batch_size=8, pin_memory=True)
 
     # unet = Unet(1, 1).to(device)
     # loss_function = torch.nn.BCEWithLogitsLoss()
     # opt = torch.optim.Adam(unet.parameters(), 0.02)
     # scheduler = ExponentialLR(opt, gamma=0.95)
     #
-    # train_steps = len(train_set) // 32
-    # test_steps = len(test_set) // 32
+    # train_steps = len(train_set) // 8
+    # test_steps = len(test_set) // 8
     #
     # h = {"train_loss": [], "test_loss": []}
     #
@@ -89,11 +92,20 @@ if __name__ == '__main__':
     #     print("[INFO] EPOCH: {}/{}".format(e + 1, 10))
     #     print("Train loss: {:.6f}, Test loss: {:.4f}".format(
     #         avg_train_loss, avg_test_loss))
-    unet = save.load_model("Unet", "unet_00")
-    pred = predict(test_set[100][0], unet)
-    set = test_set[100]
-    # show_tensor_img(set[0], set[1])
-    compare_masks(set[0], pred.squeeze(0).squeeze(0), set[1])
+    #unet = save.load_model("Unet", "unet_00").to(device)
+    # pred = predict(test_set[100][0], unet)
+    # set = test_set[100]
+    # # show_tensor_img(set[0], set[1])
+    # s1 = pred.squeeze(0).squeeze(0)
+    # s2 = set[1].squeeze(0)
+    # intersection = (s1 * s2).sum().float()
+    # print((2 * intersection.item()) / (s1.sum() + s2.sum()).item())
+    # s1 = np.array(s1)
+    # s2 = np.array(s2)
+    # dice = np.sum(s1[s2 == 1]) * 2.0 / (np.sum(s1) + np.sum(s2))
+    # print(dice)
+    # compare_masks(set[0], pred.squeeze(0).squeeze(0), set[1])
+    #print(calculate_dice_metric(unet, test_loader, device))
 
 
 
