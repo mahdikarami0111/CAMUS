@@ -48,15 +48,16 @@ def train(cfg):
     opt = select_opt(cfg.OPTIMIZER, model)
     scheduler = select_scheduler(cfg.SCHEDULER, opt)
     dataset = CAMUS(cfg.DATA, select_transform(cfg.TRANSFORM))
-    train_set, test_set, kir_set = random_split(dataset, [cfg.TRAIN.TRAIN, cfg.TRAIN.VAL, cfg.TRAIN.TEST])
+    train_set, val_set, test_set = random_split(dataset, [cfg.TRAIN.TRAIN, cfg.TRAIN.VAL, cfg.TRAIN.TEST])
+
 
     train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
-    test_loader = DataLoader(test_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
+    val_loader = DataLoader(val_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
 
     epochs = cfg.TRAIN.EPOCHS
 
     train_steps = len(train_set) // 8
-    test_steps = len(test_set) // 8
+    test_steps = len(val_set) // 8
 
     h = {"train_loss": [], "test_loss": []}
 
@@ -80,7 +81,7 @@ def train(cfg):
         with torch.no_grad():
             model.eval()
 
-            for(x, y) in test_loader:
+            for(x, y) in val_loader:
                 (x, y) = (x.to(device), y.to(device))
                 out = model(x)
                 total_test_loss += loss_function(out, y)
@@ -94,4 +95,5 @@ def train(cfg):
         print("[INFO] EPOCH: {}/{}".format(e + 1, 10))
         print("Train loss: {:.6f}, Test loss: {:.4f}".format(
             avg_train_loss, avg_test_loss))
+    return train_set.indices, val_set.indices, test_set.indices
 
