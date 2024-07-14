@@ -50,6 +50,12 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_set, shuffle=True, batch_size=8, pin_memory=True)
     test_loader = DataLoader(test_set, shuffle=True, batch_size=8, pin_memory=True)
 
+    kf = KFold(10, shuffle=True)
+    for i, (train_index, test_index) in enumerate(kf.split(dataset)):
+        print(f"Fold {i}:")
+        print(f"  Train: index={len(train_index)}")
+        print(f"  Test:  index={len(test_index)}")
+
     # unet = Unet(1, 1).to(device)
     # loss_function = torch.nn.BCEWithLogitsLoss()
     # opt = torch.optim.Adam(unet.parameters(), 0.02)
@@ -94,7 +100,11 @@ if __name__ == '__main__':
     #     print("[INFO] EPOCH: {}/{}".format(e + 1, 10))
     #     print("Train loss: {:.6f}, Test loss: {:.4f}".format(
     #         avg_train_loss, avg_test_loss))
-    unet = save.load_model("Unet", "48").to(device)
+
+
+    #unet = save.load_model("Unet", "48").to(device)
+
+
     # pred = predict(test_set[100][0], unet)
     # set = test_set[100]
     # # show_tensor_img(set[0], set[1])
@@ -109,7 +119,9 @@ if __name__ == '__main__':
     # print(dice)
     # compare_masks(set[0], pred.squeeze(0).squeeze(0), set[1])
     # print(calculate_dice_metric(unet, test_loader, device))
-    print(calculate_mean_distance(unet, test_loader, device))
+
+
+    #print(calculate_mean_distance(unet, test_loader, device))
 
 
 

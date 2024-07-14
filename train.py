@@ -1,3 +1,5 @@
+import os
+
 import models.Unet
 import torch
 from torch.optim.lr_scheduler import ExponentialLR
@@ -6,7 +8,12 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import random_split
 from torch.utils.data import DataLoader
+from torch.utils.data import Subset
 from tqdm import tqdm
+from sklearn.model_selection import KFold
+from utils.save import save_model
+from utils.save import load_model
+from eval.evaluation import evaluate_model
 
 
 def select_model(name):
@@ -48,7 +55,10 @@ def train(cfg):
     opt = select_opt(cfg.OPTIMIZER, model)
     scheduler = select_scheduler(cfg.SCHEDULER, opt)
     dataset = CAMUS(cfg.DATA, select_transform(cfg.TRANSFORM))
-    train_set, val_set, test_set = random_split(dataset, [cfg.TRAIN.TRAIN, cfg.TRAIN.VAL, cfg.TRAIN.TEST])
+    train_set, test_set, val_set = random_split(dataset, [cfg.TRAIN.TRAIN, cfg.TRAIN.VAL, cfg.TRAIN.TEST])
+
+    train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
+    test_loader = DataLoader(test_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
 
 
     train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
@@ -57,7 +67,7 @@ def train(cfg):
     epochs = cfg.TRAIN.EPOCHS
 
     train_steps = len(train_set) // 8
-    test_steps = len(val_set) // 8
+    val_steps = len(val_set) // 8
 
     h = {"train_loss": [], "test_loss": []}
 
@@ -65,7 +75,7 @@ def train(cfg):
         model.train()
 
         total_train_loss = 0
-        total_test_loss = 0
+        total_val_loss = 0
 
         for(i, (X, Y)) in enumerate(train_loader):
             (X, Y) = (X.to(device), Y.to(device))
@@ -84,10 +94,10 @@ def train(cfg):
             for(x, y) in val_loader:
                 (x, y) = (x.to(device), y.to(device))
                 out = model(x)
-                total_test_loss += loss_function(out, y)
+                total_val_loss += loss_function(out, y)
 
         avg_train_loss = total_train_loss / train_steps
-        avg_test_loss = total_test_loss / test_steps
+        avg_test_loss = total_val_loss / val_steps
         scheduler.step()
 
         h["train_loss"].append(avg_train_loss.cpu().detach().numpy())
@@ -96,4 +106,84 @@ def train(cfg):
         print("Train loss: {:.6f}, Test loss: {:.4f}".format(
             avg_train_loss, avg_test_loss))
     return train_set.indices, val_set.indices, test_set.indices
+
+
+def train_K_fold(cfg):
+    device = cfg.DEVICE
+    dataset = CAMUS(cfg.DATA, select_transform(cfg.TRANSFORM))
+    kfold = cfg.TRAIN.KFOLD
+    epochs = cfg.TRAIN.EPOCHS
+    kf = KFold(kfold, shuffle=True)
+
+    for j, (train_index, test_index) in enumerate(kf.split(dataset)):
+        print(f"Fold {j}/{kfold}")
+
+        model = select_model(cfg.MODEL).to(device)
+        loss_function = select_loss(cfg.LOSS)
+        opt = select_opt(cfg.OPTIMIZER, model)
+        scheduler = select_scheduler(cfg.SCHEDULER, opt)
+
+        train_val_set = Subset(dataset, train_index)
+        test_set = Subset(dataset, test_index)
+        train_set, val_set = random_split(train_val_set, [cfg.TRAIN, cfg.VAL])
+
+        train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
+        val_loader = DataLoader(val_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
+        test_loader = DataLoader(test_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
+
+        train_steps = len(train_set) // 8
+        val_steps = len(val_set) // 8
+
+        h = {"train_loss": [], "test_loss": []}
+        min_loss = 99999
+        best_model = None
+
+        for e in tqdm(range(10)):
+            model.train()
+
+            total_train_loss = 0
+            total_val_loss = 0
+
+            for (i, (X, Y)) in enumerate(train_loader):
+                (X, Y) = (X.to(device), Y.to(device))
+                out = model(X)
+                loss = loss_function(out, Y)
+
+                opt.zero_grad()
+                loss.backward()
+                opt.step()
+
+                total_train_loss += loss
+
+            with torch.no_grad():
+                model.eval()
+
+                for (x, y) in val_loader:
+                    (x, y) = (x.to(device), y.to(device))
+                    out = model(x)
+                    total_val_loss += loss_function(out, y)
+
+            avg_train_loss = total_train_loss / train_steps
+            avg_val_loss = total_val_loss / val_steps
+            scheduler.step()
+
+            h["train_loss"].append(avg_train_loss.cpu().detach().numpy())
+            h["test_loss"].append(avg_val_loss.cpu().detach().numpy())
+            if avg_val_loss < min_loss:
+                min_loss = avg_val_loss
+                save_model(model.state_dict(), f"{j}:{e}")
+                if best_model is not None:
+                    os.remove(best_model)
+                best_model = f"{j}:{e}"
+
+            print("[INFO] EPOCH: {}/{}".format(e + 1, 10))
+            print("Train loss: {:.6f}, Test loss: {:.4f}".format(
+                avg_train_loss, avg_val_loss))
+        model = load_model(cfg.MODEL, best_model)
+        results = evaluate_model(model, test_loader, device)
+        print(results)
+
+
+
+
 

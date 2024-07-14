@@ -67,3 +67,13 @@ def calculate_mean_distance(model, test_loader, device):
                 avg_score += (avg_dist[0] + avg_dist[1])/2
 
         return avg_score / len(test_loader.dataset)
+
+
+def evaluate_model(model, test_loader, device):
+    eval_dict = {
+        "Dice": calculate_dice_metric(model, test_loader, device),
+        "Hausdorff": calculate_hausdorff_metric(model, test_loader, device),
+        "Mean distance": calculate_mean_distance(model, test_loader, device),
+    }
+    return eval_dict
+
