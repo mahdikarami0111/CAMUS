@@ -36,7 +36,7 @@ def select_scheduler(scheduler, optimizer):
         return ExponentialLR(optimizer, scheduler.GAMMA)
 
 
-def select_transform (transform):
+def select_transform(transform):
     if transform == "default":
         input_size = 224
         t = A.Compose([
@@ -71,7 +71,7 @@ def train(cfg):
 
     h = {"train_loss": [], "test_loss": []}
 
-    for e in tqdm(range(30)):
+    for e in tqdm(range(epochs)):
         model.train()
 
         total_train_loss = 0
@@ -125,7 +125,7 @@ def train_K_fold(cfg):
 
         train_val_set = Subset(dataset, train_index)
         test_set = Subset(dataset, test_index)
-        train_set, val_set = random_split(train_val_set, [cfg.TRAIN, cfg.VAL])
+        train_set, val_set = random_split(train_val_set, [cfg.TRAIN.TRAIN, cfg.TRAIN.VAL])
 
         train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
         val_loader = DataLoader(val_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
@@ -138,7 +138,7 @@ def train_K_fold(cfg):
         min_loss = 99999
         best_model = None
 
-        for e in tqdm(range(10)):
+        for e in tqdm(range(epochs)):
             model.train()
 
             total_train_loss = 0
@@ -171,10 +171,10 @@ def train_K_fold(cfg):
             h["test_loss"].append(avg_val_loss.cpu().detach().numpy())
             if avg_val_loss < min_loss:
                 min_loss = avg_val_loss
-                save_model(model.state_dict(), f"{j}:{e}")
+                save_model(model.state_dict(), f"{j}{e}")
                 if best_model is not None:
-                    os.remove(best_model)
-                best_model = f"{j}:{e}"
+                    os.remove("models/trained_models/" + best_model+".pth")
+                best_model = f"{j}{e}"
 
             print("[INFO] EPOCH: {}/{}".format(e + 1, 10))
             print("Train loss: {:.6f}, Test loss: {:.4f}".format(

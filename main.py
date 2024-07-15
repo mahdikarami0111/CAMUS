@@ -20,6 +20,7 @@ from albumentations.pytorch import ToTensorV2
 from sklearn.model_selection import KFold
 from utils.debug import*
 from train import train
+from train import train_K_fold
 from dotmap import DotMap
 from skimage.metrics import hausdorff_distance
 
@@ -30,31 +31,30 @@ from skimage.metrics import hausdorff_distance
 # cv2.waitKey(0)
 # do_stuff("data/database/patient0001/patient0001_2CH_ES.nii", "data/database/patient0001/patient0001_2CH_ES_gt.nii")
 if __name__ == '__main__':
-    with open("config/dataset_config.yaml", 'r') as cfg:
+    with open("config/Unet_00.yaml", 'r') as cfg:
         cfg = yaml.safe_load(cfg)
-    print(cfg)
-    # train(DotMap(cfg))
+    train_K_fold(DotMap(cfg))
     # crop_ratio = 1.0
-    input_size = 224
-    device = "cuda"
-    input_transformer = A.Compose([
-        # A.HorizontalFlip(p=0.5),
-        # A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30, p=1.0),
-        A.Resize(height=input_size, width=input_size),
-        ToTensorV2(),
-        ])
-
-    dataset = CAMUS(cfg, input_transformer)
-    train_set, test_set = torch.utils.data.random_split(dataset, [0.7, 0.3])
-
-    train_loader = DataLoader(train_set, shuffle=True, batch_size=8, pin_memory=True)
-    test_loader = DataLoader(test_set, shuffle=True, batch_size=8, pin_memory=True)
-
-    kf = KFold(10, shuffle=True)
-    for i, (train_index, test_index) in enumerate(kf.split(dataset)):
-        print(f"Fold {i}:")
-        print(f"  Train: index={len(train_index)}")
-        print(f"  Test:  index={len(test_index)}")
+    # input_size = 224
+    # device = "cuda"
+    # input_transformer = A.Compose([
+    #     # A.HorizontalFlip(p=0.5),
+    #     # A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30, p=1.0),
+    #     A.Resize(height=input_size, width=input_size),
+    #     ToTensorV2(),
+    #     ])
+    #
+    # dataset = CAMUS(cfg, input_transformer)
+    # train_set, test_set = torch.utils.data.random_split(dataset, [0.7, 0.3])
+    #
+    # train_loader = DataLoader(train_set, shuffle=True, batch_size=8, pin_memory=True)
+    # test_loader = DataLoader(test_set, shuffle=True, batch_size=8, pin_memory=True)
+    #
+    # kf = KFold(10, shuffle=True)
+    # for i, (train_index, test_index) in enumerate(kf.split(dataset)):
+    #     print(f"Fold {i}:")
+    #     print(f"  Train: index={len(train_index)}")
+    #     print(f"  Test:  index={len(test_index)}")
 
     # unet = Unet(1, 1).to(device)
     # loss_function = torch.nn.BCEWithLogitsLoss()

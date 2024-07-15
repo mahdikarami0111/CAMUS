@@ -15,6 +15,7 @@ def predict(img, model):
 def calculate_dice_metric(model, test_loader, device):
     with torch.no_grad():
         model.eval()
+        model.to(device)
         avg_score = 0
 
         for (X, Y) in test_loader:
@@ -35,6 +36,7 @@ def avg_dice_metric_batch(preds, masks):
 def calculate_hausdorff_metric(model, test_loader, device):
     with torch.no_grad():
         model.eval()
+        model.to(device)
         avg_score = 0
 
         for (X, Y) in test_loader:
@@ -52,6 +54,7 @@ def calculate_hausdorff_metric(model, test_loader, device):
 def calculate_mean_distance(model, test_loader, device):
     with torch.no_grad():
         model.eval()
+        model.to(device)
         avg_score = 0
 
         for (X, Y) in test_loader:

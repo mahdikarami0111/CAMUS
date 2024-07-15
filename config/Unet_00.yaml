@@ -3,7 +3,7 @@ MODEL: "Unet"
 LOSS: "BCEL"
 OPTIMIZER:
   NAME: "ADAM"
-  LR: 0.02
+  LR: 0.05
 SCHEDULER:
   NAME: "EXPONENTIAL"
   GAMMA: 0.95
@@ -13,9 +13,9 @@ DATA:
   type: "N 4CH"
 TRANSFORM: "default"
 TRAIN:
-  TRAIN: 0.7
-  TEST: 0.15
-  VAL: 0.15
-  BATCH_SIZE: 16
-  EPOCHS: 50
+  TRAIN: 0.9
+  TEST: 0
+  VAL: 0.1
+  BATCH_SIZE: 8
+  EPOCHS: 5
   KFOLD: 10
