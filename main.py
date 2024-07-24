@@ -31,9 +31,10 @@ from skimage.metrics import hausdorff_distance
 # cv2.waitKey(0)
 # do_stuff("data/database/patient0001/patient0001_2CH_ES.nii", "data/database/patient0001/patient0001_2CH_ES_gt.nii")
 if __name__ == '__main__':
-    with open("config/Unet_00.yaml", 'r') as cfg:
-        cfg = yaml.safe_load(cfg)
-    train_K_fold(DotMap(cfg))
+    # with open("config/Unet_00.yaml", 'r') as cfg:
+    #     cfg = yaml.safe_load(cfg)
+    # train_K_fold(DotMap(cfg))
+    print(224 // 16 // 16)
     # crop_ratio = 1.0
     # input_size = 224
     # device = "cuda"
