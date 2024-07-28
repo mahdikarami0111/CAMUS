@@ -3,7 +3,6 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 def show_tensor_img(img, seg):
     img = img.permute(1, 2, 0)
     x_size = img.shape[1]

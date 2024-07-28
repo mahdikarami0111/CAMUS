@@ -3,7 +3,7 @@ import os
 import models.Unet
 import torch
 from torch.optim.lr_scheduler import ExponentialLR
-from dataset import CAMUS
+from dataset import CAMUS, Wrapper
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import random_split
@@ -37,6 +37,7 @@ def select_scheduler(scheduler, optimizer):
 
 
 def select_transform(transform):
+    t = None
     if transform == "default":
         input_size = 224
         t = A.Compose([
@@ -45,8 +46,13 @@ def select_transform(transform):
             A.Resize(height=input_size, width=input_size),
             ToTensorV2(),
         ])
-        return t
-
+    elif transform == "basic":
+        input_size = 224
+        t = A.Compose([
+            A.Resize(height=input_size, width=input_size),
+            ToTensorV2(),
+        ])
+    return t
 
 def train(cfg):
     device = cfg.DEVICE
@@ -54,14 +60,15 @@ def train(cfg):
     loss_function = select_loss(cfg.LOSS)
     opt = select_opt(cfg.OPTIMIZER, model)
     scheduler = select_scheduler(cfg.SCHEDULER, opt)
-    dataset = CAMUS(cfg.DATA, select_transform(cfg.TRANSFORM))
+    dataset = CAMUS(cfg.DATA)
     train_set, test_set, val_set = random_split(dataset, [cfg.TRAIN.TRAIN, cfg.TRAIN.VAL, cfg.TRAIN.TEST])
+
+    train_set = Wrapper(train_set, select_transform(cfg.TRANSFORM))
+    test_set = Wrapper(test_set, select_transform("basic"))
+    val_set = Wrapper(val_set, select_transform("basic"))
 
     train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
     test_loader = DataLoader(test_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
-
-
-    train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
     val_loader = DataLoader(val_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
 
     epochs = cfg.TRAIN.EPOCHS
@@ -126,6 +133,10 @@ def train_K_fold(cfg):
         train_val_set = Subset(dataset, train_index)
         test_set = Subset(dataset, test_index)
         train_set, val_set = random_split(train_val_set, [cfg.TRAIN.TRAIN, cfg.TRAIN.VAL])
+
+        train_set = Wrapper(train_set, select_transform(cfg.TRANSFORM))
+        test_set = Wrapper(test_set, select_transform("basic"))
+        val_set = Wrapper(val_set, select_transform("basic"))
 
         train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
         val_loader = DataLoader(val_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)

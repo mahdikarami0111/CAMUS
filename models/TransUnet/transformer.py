@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Conv2d, Dropout, Linear, Softmax, LayerNorm
 from torch.nn.modules.utils import _pair
-from backbone import ResNetV2
+from ..TransUnet.backbone import ResNetV2
 import math
 import copy
 from utils.net import np2th, swish

@@ -1,48 +1,67 @@
 import glob
+import os
+
 import nibabel as nib
 import torchvision.transforms as torch_transforms
 import numpy as np
 from torch.utils import data
 import albumentations as A
 from utils.image import*
+from PIL import Image
 from albumentations.pytorch import ToTensorV2
 
 
 class CAMUS(data.Dataset):
-    def __init__(self, dataset_cfg: dict, transform: A.core.composition.Compose = None):
+    def __init__(self, dataset_cfg: dict):
         self.root = dataset_cfg["root"]
         self.device = dataset_cfg["device"]
         self.type = dataset_cfg["type"]
-        self.transform = transform
-        self.data, self.labels = self.get_data()
+        self.data = self.get_data()
         self.basic_transform = torch_transforms.ToTensor()
         self.normalize = torch_transforms.Normalize([0.5], [0.5])
 
     def get_data(self):
-        dataset_dir = self.root + "/database"
-        img_list = glob.glob(f"{dataset_dir}/*/*4CH_ED.nii")
-        img_list.extend(glob.glob(f"{dataset_dir}/*/*4CH_ES.nii"))
-        mask_list = glob.glob(f"{dataset_dir}/*/*4CH_ED_gt.nii")
-        mask_list.extend(glob.glob(f"{dataset_dir}/*/*4CH_ES_gt.nii"))
-
-        return img_list, mask_list
+        data_ = []
+        dataset_dir = self.root
+        subjects = os.listdir(dataset_dir)
+        for subject in subjects:
+            images = sorted(glob.glob(f"{dataset_dir}/{subject}/*_.jpg"))
+            masks = sorted(glob.glob(f"{dataset_dir}/{subject}/*_gt.png"))
+            for i in range(len(images)):
+                if images[i][-10:].split("_")[1] != masks[i][-12:].split("_")[1]:
+                    print("Error image and mask not matching")
+                    return None
+                data_.append((images[i], masks[i]))
+        return data_[0:1000]
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, item):
-        img = nib.load(self.data[item])
-        img = np.array(np.transpose(img.get_fdata()), dtype=np.float32)
-        mask = nib.load(self.labels[item])
-        mask = np.array(np.transpose(mask.get_fdata()), dtype=np.float32)
-        mask = np.where(mask == 1, mask, 0)
+        img, mask = self.data[item]
+        img = np.array(Image.open(img), dtype=np.float32)
+        mask = np.array(Image.open(mask), dtype=np.float32)
+        mask = mask // 85
+        mask[mask != 1] = 0
+        return img, mask
+
+
+class Wrapper(data.Dataset):
+    def __init__(self, subset, transform=None):
+        self.normalize = torch_transforms.Normalize([0.5], [0.5])
+        self.subset = subset
+        self.transform = transform
+
+    def __getitem__(self, item):
+        img, mask = self.subset[item]
         img_tensor = self.transform(image=img, mask=mask)
         img = self.normalize(img_tensor['image'])
         mask = img_tensor['mask']
         mask = mask.unsqueeze(0)
-        # show_tensor_img(img_tensor['image'], img_tensor['mask'])
         return img, mask
 
+    def __len__(self):
+        return len(self.subset)
 
 
 

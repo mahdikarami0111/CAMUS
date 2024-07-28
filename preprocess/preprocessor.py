@@ -79,3 +79,20 @@ def convert_dataset_to_jpg(source_path, dest_path, base_transform):
         convert_subject_to_jpg(os.path.join(source_path, subject), dest_path, base_transform)
 
 
+def expand_series(source_path, dest_path):
+    os.mkdir(dest_path)
+    subject_list = os.listdir(source_path)
+    for subject in subject_list:
+        working_dir = f"{source_path}/{subject}"
+        dest = f"{dest_path}/{subject}"
+        os.mkdir(dest)
+        series = f"{working_dir}/{subject}_4CH_half_sequence.nii"
+        images = np.array(np.transpose(nib.load(series).get_fdata()))
+        for i in range(images.shape[0]):
+            cv2.imwrite(f"{dest}/4CH_{i}_.jpg", images[i, :])
+
+        series = f"{working_dir}/{subject}_4CH_half_sequence_gt.nii"
+        images = np.array(np.transpose(nib.load(series).get_fdata()))
+        for i in range(images.shape[0]):
+            img = images[i, :] * 85
+            cv2.imwrite(f"{dest}/4CH_{i}_gt.png", img)

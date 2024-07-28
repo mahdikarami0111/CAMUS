@@ -3,8 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from transformer import Transformer
-from backbone import DecoderCup
+from ..TransUnet.transformer import Transformer
+from ..TransUnet.backbone import DecoderCup
 
 
 class SegmentationHead(nn.Sequential):

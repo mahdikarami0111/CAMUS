@@ -8,7 +8,7 @@ SCHEDULER:
   NAME: "EXPONENTIAL"
   GAMMA: 0.95
 DATA:
-  root: "data"
+  root: "data/database_expanded"
   device: "cuda"
   type: "N 4CH"
 TRANSFORM: "default"
