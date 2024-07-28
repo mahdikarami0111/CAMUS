@@ -32,7 +32,7 @@ class CAMUS(data.Dataset):
                     print("Error image and mask not matching")
                     return None
                 data_.append((images[i], masks[i]))
-        return data_[0:1000]
+        return data_
 
     def __len__(self):
         return len(self.data)

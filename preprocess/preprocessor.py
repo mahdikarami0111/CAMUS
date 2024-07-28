@@ -36,12 +36,14 @@ def check_subject_integrity(path: os.path, files):
     return long_entry + ";\n"
 
 
-def unzip(data_path):
+def unzip(data_path, print_progress=False):
     dataset_zipped = data_path + "/database_nifti"
     dataset_unzipped = data_path + "/database"
     os.mkdir(dataset_unzipped)
-    for subject in os.listdir(dataset_zipped):
+    for i, subject in enumerate(os.listdir(dataset_zipped)):
         unzip_subject(os.path.join(dataset_zipped, subject), dataset_unzipped)
+        if print_progress:
+            print(f"done {i} out of 500")
 
 def unzip_subject(path, dest_path):
     file_list = os.listdir(path)
