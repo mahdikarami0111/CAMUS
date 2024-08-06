@@ -28,13 +28,26 @@ from dotmap import DotMap
 from skimage.metrics import hausdorff_distance
 from models.TransUnet.TransUnet import VisionTransformer
 from config import TransUnet_cfg
-from models.TransUnet.train import train
-from torch.utils.data import random_split
+from train import train
 
+from config.Unet_cfg import get_config
+from torch.utils.data import random_split
+from torch.utils.data import Subset
 
 if __name__ == '__main__':
-    cfg = TransUnet_cfg.get_train_config()
-    train(cfg)
+    # model = save.load_model("TransUnet", "transunetV2").to('cuda')
+    # dataset = CAMUS({
+    #     "root": "data/database_expanded",
+    #     "device": "cuda",
+    #     "type": "N 4CH",
+    # })
+    # indices = save.load_indices()
+    # test = Subset(dataset, indices["test"])
+    # test_set = Wrapper(test, transform=select_transform('basic'))
+    #
+    # test_loader = DataLoader(test_set, batch_size=8, shuffle=True, pin_memory=True)
+    # print(calculate_dice_metric(model, test_loader, 'cuda'))
+    train(get_config(), save.load_indices())
 
 
 

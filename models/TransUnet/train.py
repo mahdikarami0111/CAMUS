@@ -6,6 +6,7 @@ from dataset import CAMUS, Wrapper
 from ..TransUnet.TransUnet import VisionTransformer
 from config.TransUnet_cfg import get_TransUnet_config
 from torch.utils.data import random_split
+from torch.utils.data import Subset
 from torch.utils.data import DataLoader
 from torch.nn.modules.loss import BCEWithLogitsLoss
 from utils.save import save_model
@@ -57,7 +58,7 @@ class DiceLoss(nn.Module):
         return loss / self.n_classes
 
 
-def train(cfg):
+def train(cfg, preset_indices=None):
     dataset = CAMUS(cfg.data)
     batch_size = cfg.batch_size
     num_classes = cfg.num_classes
@@ -68,7 +69,12 @@ def train(cfg):
     optimizer = torch.optim.SGD(model.parameters(), lr=cfg.lr, momentum=0.9, weight_decay=0.0001)
     bce_loss = BCEWithLogitsLoss()
     dice_loss = DiceLoss(num_classes)
-    train_, test, val = random_split(dataset, [cfg.train_split, cfg.test_split, cfg.val_split])
+    if preset_indices is None:
+        train_, test, val = random_split(dataset, [cfg.train_split, cfg.test_split, cfg.val_split])
+    else:
+        train_ = Subset(dataset, preset_indices["train"])
+        test = Subset(dataset, preset_indices["test"])
+        val = Subset(dataset, preset_indices["val"])
     train_ = Wrapper(train_, select_transform(cfg.transform))
     val = Wrapper(val, select_transform('basic'))
 

@@ -13,9 +13,9 @@ DATA:
   type: "N 4CH"
 TRANSFORM: "default"
 TRAIN:
-  TRAIN: 0.9
-  TEST: 0
-  VAL: 0.1
+  TRAIN: 0.7
+  TEST: 0.15
+  VAL: 0.15
   BATCH_SIZE: 8
   EPOCHS: 5
   KFOLD: 10

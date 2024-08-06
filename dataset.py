@@ -24,6 +24,7 @@ class CAMUS(data.Dataset):
         data_ = []
         dataset_dir = self.root
         subjects = os.listdir(dataset_dir)
+        subjects.sort()
         for subject in subjects:
             images = sorted(glob.glob(f"{dataset_dir}/{subject}/*_.jpg"))
             masks = sorted(glob.glob(f"{dataset_dir}/{subject}/*_gt.png"))

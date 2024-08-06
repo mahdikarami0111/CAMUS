@@ -3,6 +3,7 @@ from skimage.metrics import hausdorff_distance
 import numpy as np
 from surface_distance import compute_surface_distances
 from surface_distance import compute_average_surface_distance
+from medpy.metric.binary import dc
 
 
 def predict(img, model):
@@ -31,6 +32,14 @@ def calculate_dice_metric(model, test_loader, device):
 def avg_dice_metric_batch(preds, masks):
     intersection = (preds * masks).sum(dim=(1, 2, 3)).float()
     return (2 * intersection) / (preds.sum(dim=(1, 2, 3)) + masks.sum(dim=(1, 2, 3)))
+
+
+def new_avg_dice_metric_batch(preds, masks):
+    batch_size = preds.shape[0]
+    batch_dc = 0
+    for i in range(batch_size):
+        batch_dc += dc(np.asarray(preds[i, :].unsqueeze(0).cpu()), np.asarray(masks[i, :].unsqueeze(0).cpu()))
+    return batch_dc
 
 
 def calculate_hausdorff_metric(model, test_loader, device):

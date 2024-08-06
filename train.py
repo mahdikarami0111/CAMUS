@@ -13,6 +13,7 @@ from tqdm import tqdm
 from sklearn.model_selection import KFold
 from utils.save import save_model
 from utils.save import load_model
+from utils.save import load_indices
 from eval.evaluation import evaluate_model
 
 
@@ -27,13 +28,13 @@ def select_loss(loss):
 
 
 def select_opt(opt, model):
-    if opt.NAME == "ADAM":
-        return torch.optim.Adam(model.parameters(), opt.LR)
+    if opt["name"] == "ADAM":
+        return torch.optim.Adam(model.parameters(), opt["lr"])
 
 
 def select_scheduler(scheduler, optimizer):
-    if scheduler.NAME == "EXPONENTIAL":
-        return ExponentialLR(optimizer, scheduler.GAMMA)
+    if scheduler["name"] == "EXPONENTIAL":
+        return ExponentialLR(optimizer, scheduler["gamma"])
 
 
 def select_transform(transform):
@@ -54,24 +55,30 @@ def select_transform(transform):
         ])
     return t
 
-def train(cfg):
-    device = cfg.DEVICE
-    model = select_model(cfg.MODEL).to(device)
-    loss_function = select_loss(cfg.LOSS)
-    opt = select_opt(cfg.OPTIMIZER, model)
-    scheduler = select_scheduler(cfg.SCHEDULER, opt)
-    dataset = CAMUS(cfg.DATA)
-    train_set, test_set, val_set = random_split(dataset, [cfg.TRAIN.TRAIN, cfg.TRAIN.VAL, cfg.TRAIN.TEST])
 
-    train_set = Wrapper(train_set, select_transform(cfg.TRANSFORM))
+def train(cfg, preset_indices = None):
+    device = cfg.device
+    model = select_model(cfg.model).to(device)
+    loss_function = select_loss(cfg.loss)
+    opt = select_opt(cfg.optimizer, model)
+    scheduler = select_scheduler(cfg.scheduler, opt)
+    dataset = CAMUS(cfg.data)
+    if preset_indices is None:
+        train_set, test_set, val_set = random_split(dataset, [cfg.train.train, cfg.train.test, cfg.train.val])
+    else:
+        train_set = Subset(dataset, preset_indices["train"])
+        test_set = Subset(dataset, preset_indices["test"])
+        val_set = Subset(dataset, preset_indices["val"])
+
+    train_set = Wrapper(train_set, select_transform(cfg.transform))
     test_set = Wrapper(test_set, select_transform("basic"))
     val_set = Wrapper(val_set, select_transform("basic"))
 
-    train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
-    test_loader = DataLoader(test_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
-    val_loader = DataLoader(val_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
+    train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.train.batch_size, pin_memory=True)
+    test_loader = DataLoader(test_set, shuffle=True, batch_size=cfg.train.batch_size, pin_memory=True)
+    val_loader = DataLoader(val_set, shuffle=True, batch_size=cfg.train.batch_size, pin_memory=True)
 
-    epochs = cfg.TRAIN.EPOCHS
+    epochs = cfg.train.epochs
 
     train_steps = len(train_set) // 8
     val_steps = len(val_set) // 8
@@ -112,35 +119,35 @@ def train(cfg):
         print("[INFO] EPOCH: {}/{}".format(e + 1, 10))
         print("Train loss: {:.6f}, Test loss: {:.4f}".format(
             avg_train_loss, avg_test_loss))
-    return train_set.indices, val_set.indices, test_set.indices
+    return model
 
 
 def train_K_fold(cfg):
-    device = cfg.DEVICE
-    dataset = CAMUS(cfg.DATA, select_transform(cfg.TRANSFORM))
-    kfold = cfg.TRAIN.KFOLD
-    epochs = cfg.TRAIN.EPOCHS
+    device = cfg.device
+    dataset = CAMUS(cfg.DATA)
+    kfold = cfg.train.kfold
+    epochs = cfg.train.epochs
     kf = KFold(kfold, shuffle=True)
 
     for j, (train_index, test_index) in enumerate(kf.split(dataset)):
         print(f"Fold {j}/{kfold}")
 
-        model = select_model(cfg.MODEL).to(device)
-        loss_function = select_loss(cfg.LOSS)
-        opt = select_opt(cfg.OPTIMIZER, model)
-        scheduler = select_scheduler(cfg.SCHEDULER, opt)
+        model = select_model(cfg.model).to(device)
+        loss_function = select_loss(cfg.loss)
+        opt = select_opt(cfg.optimizer, model)
+        scheduler = select_scheduler(cfg.scheduler, opt)
 
         train_val_set = Subset(dataset, train_index)
         test_set = Subset(dataset, test_index)
-        train_set, val_set = random_split(train_val_set, [cfg.TRAIN.TRAIN, cfg.TRAIN.VAL])
+        train_set, val_set = random_split(train_val_set, [cfg.train.train, cfg.train.val])
 
-        train_set = Wrapper(train_set, select_transform(cfg.TRANSFORM))
+        train_set = Wrapper(train_set, select_transform(cfg.transform))
         test_set = Wrapper(test_set, select_transform("basic"))
         val_set = Wrapper(val_set, select_transform("basic"))
 
-        train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
-        val_loader = DataLoader(val_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
-        test_loader = DataLoader(test_set, shuffle=True, batch_size=cfg.TRAIN.BATCH_SIZE, pin_memory=True)
+        train_loader = DataLoader(train_set, shuffle=True, batch_size=cfg.train.batch_size, pin_memory=True)
+        val_loader = DataLoader(val_set, shuffle=True, batch_size=cfg.train.batch_size, pin_memory=True)
+        test_loader = DataLoader(test_set, shuffle=True, batch_size=cfg.train.batch_size, pin_memory=True)
 
         train_steps = len(train_set) // 8
         val_steps = len(val_set) // 8

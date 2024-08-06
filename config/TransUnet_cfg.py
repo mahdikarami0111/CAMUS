@@ -44,5 +44,6 @@ def get_train_config():
     config.lr = 0.05
     config.train_split = 0.7
     config.test_split = 0.3
+    config.val_split = 0
     config.transform = "default"
     return config
