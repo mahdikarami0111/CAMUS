@@ -68,4 +68,14 @@ if __name__ == '__main__':
     #     break
     # __________________________________________________
 
-    train(get_train_cfg())
+    model = save.load_model("BCUnet", "BCUnet").cuda()
+    indices = save.load_indices()
+    dataset = CAMUS({
+        "root": "data/database_expanded",
+        "device": "cuda",
+        "type": "N 4CH",
+    })
+    test_set = Subset(dataset, indices["test"])
+    test_set = Wrapper(test_set, select_transform("basic"))
+    test_loader = DataLoader(test_set, batch_size=2, shuffle=True, pin_memory=True)
+    print(BCUnet_dice(model, test_loader, "cuda"))

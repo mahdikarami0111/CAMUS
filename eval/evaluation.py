@@ -4,6 +4,8 @@ import numpy as np
 from surface_distance import compute_surface_distances
 from surface_distance import compute_average_surface_distance
 from medpy.metric.binary import dc
+from torch import nn
+import sklearn.metrics as metrics
 
 
 def predict(img, model):
@@ -13,20 +15,66 @@ def predict(img, model):
         return (pred > 0.5).int()
 
 
-def calculate_dice_metric(model, test_loader, device):
+def calculate_dice_metric(model, test_loader, device, single_class=True):
     with torch.no_grad():
         model.eval()
         model.to(device)
         avg_score = 0
+        softmax2d = nn.Softmax2d()
 
         for (X, Y) in test_loader:
             (X, Y) = (X.to(device), Y.to(device))
-            out = torch.sigmoid(model(X))
-            preds = (out > 0.5).int()
+
+            if single_class:
+                out = torch.sigmoid(model(X))
+                preds = (out > 0.5).int()
+            else:
+                print("here")
+                out = model(X)[2]
+                preds = torch.log(softmax2d(out) + 1e-12)
+                preds = torch.log(softmax2d(preds) + 1e-12)
+                preds = preds.argmax(dim=1, keepdim=True)
+
             scores = avg_dice_metric_batch(preds, Y)
             avg_score += scores.sum()
 
         return avg_score / len(test_loader.dataset)
+
+
+def calculate_Accuracy(confusion):
+    confusion = np.asarray(confusion)
+    pos = np.sum(confusion, 1).astype(np.float32) # 1 for row
+    res = np.sum(confusion, 0).astype(np.float32) # 0 for coloum
+    tp = np.diag(confusion).astype(np.float32)
+    f1 = 2 * confusion[1][1] / (2 * confusion[1][1] + confusion[1][0] + confusion[0][1])
+    IU = tp / (pos + res - tp)
+    dice = 2 * tp / (pos+res)
+    meanDice = np.mean(dice)
+    meanIU = np.mean(IU)
+    Acc = np.sum(tp) / np.sum(confusion)
+    Se = confusion[1][1] / (confusion[1][1]+confusion[0][1])
+    Sp = confusion[0][0] / (confusion[0][0]+confusion[1][0])
+    return  IU[1],dice[1],Acc,Se,Sp,IU,f1
+
+
+def BCUnet_dice(model, test_loader, device):
+    with torch.no_grad():
+        model.eval()
+        model.to(device)
+        avg_score = 0
+        softmax2d = nn.Softmax2d()
+        total = 0
+
+        for (X, Y) in test_loader:
+            (X, Y) = (X.to(device)), Y
+            out = torch.log(softmax2d(model(X)[2]) + 1e-12)
+            ppi = np.argmax(out.cpu().data.numpy(), 1)
+            tmp_out = ppi.reshape([-1])
+            tmp_gt = Y.reshape([-1])
+            my_confusion = metrics.confusion_matrix(tmp_out, tmp_gt).astype(np.float32)
+            miou, mdice, Acc, Se, Sp, IU, f1 = calculate_Accuracy(my_confusion)
+            total += mdice
+        return total / len(test_loader)
 
 
 def avg_dice_metric_batch(preds, masks):
