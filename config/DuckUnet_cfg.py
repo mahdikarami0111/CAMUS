@@ -14,6 +14,7 @@ def get_DuckNet_config():
     config.use_multiplier = False
     return config
 
+
 def get_DuckNet_train_config():
     config = ConfigDict()
     config.data = {
