@@ -36,6 +36,8 @@ from models.BCUnet.Convnext import LayerNorm
 from models.BCUnet.BCUnet import BCUnet
 from config.BCUnet_cfg import get_train_cfg
 from models.BCUnet.train import train
+import models.DUCKnet.train
+from config.DuckUnet_cfg import get_DuckNet_train_config
 
 if __name__ == '__main__':
     # model = save.load_model("TransUnet", "transunetV2").to('cuda')
@@ -68,14 +70,17 @@ if __name__ == '__main__':
     #     break
     # __________________________________________________
 
-    model = save.load_model("BCUnet", "BCUnet").cuda()
-    indices = save.load_indices()
-    dataset = CAMUS({
-        "root": "data/database_expanded",
-        "device": "cuda",
-        "type": "N 4CH",
-    })
-    test_set = Subset(dataset, indices["test"])
-    test_set = Wrapper(test_set, select_transform("basic"))
-    test_loader = DataLoader(test_set, batch_size=2, shuffle=True, pin_memory=True)
-    print(BCUnet_dice(model, test_loader, "cuda"))
+    # model = save.load_model("BCUnet", "BCUnet").cuda()
+    # indices = save.load_indices()
+    # dataset = CAMUS({
+    #     "root": "data/database_expanded",
+    #     "device": "cuda",
+    #     "type": "N 4CH",
+    # })
+    # test_set = Subset(dataset, indices["test"])
+    # test_set = Wrapper(test_set, select_transform("basic"))
+    # test_loader = DataLoader(test_set, batch_size=2, shuffle=True, pin_memory=True)
+    # print(BCUnet_dice(model, test_loader, "cuda"))
+    # __________________________________________________
+
+    models.DUCKnet.train.train(get_DuckNet_train_config(), save.load_indices())

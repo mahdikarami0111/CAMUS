@@ -154,7 +154,7 @@ class DuckNet(nn.Module):
         super(DuckNet, self).__init__()
         duck_multiplier = 1.0
         residual_block_multiplier = 1.0
-        self_addition_multiplier = 1.0
+        self.addition_multiplier = 1.0
 
         if use_multiplier:
             duck_multiplier = 1 / 6.0
