@@ -36,8 +36,11 @@ from models.BCUnet.Convnext import LayerNorm
 from models.BCUnet.BCUnet import BCUnet
 from config.BCUnet_cfg import get_train_cfg
 from models.BCUnet.train import train
-import models.DUCKnet.train
+from  models.DUCKnet.train import train as train_ducknet
 from config.DuckUnet_cfg import get_DuckNet_train_config
+from models.FCT.FCT import FCT
+from models.FCT.train import train as train_fct
+from config.FCT_cfg import get_FCT_config
 
 if __name__ == '__main__':
     # model = save.load_model("TransUnet", "transunetV2").to('cuda')
@@ -83,4 +86,19 @@ if __name__ == '__main__':
     # print(BCUnet_dice(model, test_loader, "cuda"))
     # __________________________________________________
 
-    models.DUCKnet.train.train(get_DuckNet_train_config(), save.load_indices())
+    # model = save.load_model("ducknet", "DuckNet").to('cuda')
+    # dataset = CAMUS({
+    #     "root": "data/database_expanded",
+    #     "device": "cuda",
+    #     "type": "N 4CH",
+    # })
+    # indices = save.load_indices()
+    # test = Subset(dataset, indices["test"])
+    # test_set = Wrapper(test, transform=select_transform('basic'))
+    #
+    # test_loader = DataLoader(test_set, batch_size=8, shuffle=True, pin_memory=True)
+    # print(calculate_dice_metric(model, test_loader, 'cuda'))
+    # ___________________________________________________
+
+    train_ducknet(get_DuckNet_train_config(), save.load_indices())
+

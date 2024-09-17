@@ -8,11 +8,10 @@ class Normalization(nn.Module):
 
         if normalization is None:
             self.norm = nn.Identity()
-        elif normalization.lower() == "batch":
+        elif normalization.lower() == 'batch':
             self.norm = nn.BatchNorm2d(num_features)
-        elif normalization.lower() == "instance":
+        elif normalization.lower() == 'instance':
             self.norm = nn.InstanceNorm2d(num_features)
-
         else:
             raise ValueError("Invalid normalization type. Supported types are None, 'batch', and 'instance'.")
 
@@ -24,10 +23,10 @@ class SeparatedConv2dBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, normalization='batch'):
         super(SeparatedConv2dBlock, self).__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, (1, kernel_size), stride=1, padding='same'),
+            nn.Conv2d(in_channels, out_channels, (1,kernel_size), stride=1, padding='same'),
             nn.ReLU(),
             Normalization(out_channels, normalization),
-            nn.Conv2d(out_channels, out_channels, (kernel_size, 1), stride=1, padding='same'),
+            nn.Conv2d(out_channels, out_channels, (kernel_size,1), stride=1, padding='same'),
             nn.ReLU(),
             Normalization(out_channels, normalization)
         )
@@ -114,17 +113,18 @@ class DoubleConv2dBlock(nn.Module):
 
 
 class DuckConv2dBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, normalization='batch',
-                 duck_multiplier=1.0, residual_block_multiplier=1.0):
+    def __init__(self, in_channels, out_channels, kernel_size=3, normalization='batch', duck_multiplier=1.0,
+                 residual_block_multiplier=1.0):
         super(DuckConv2dBlock, self).__init__()
         self.norm1 = Normalization(in_channels, normalization)
+
         self.wide_scope = WideScopeConv2dBlock(in_channels, out_channels, kernel_size, normalization)
         self.mid_scope = MidScopeConv2dBlock(in_channels, out_channels, kernel_size, normalization)
-        self.residual_block_1 = ResnetConv2dBlock(in_channels, out_channels,
-                                                  kernel_size, normalization, residual_block_multiplier)
+        self.residual_block_1 = ResnetConv2dBlock(in_channels, out_channels, kernel_size, normalization,
+                                                  residual_block_multiplier)
         self.residual_block_2 = nn.Sequential(
             ResnetConv2dBlock(in_channels, out_channels, kernel_size, normalization, residual_block_multiplier),
-            ResnetConv2dBlock(out_channels, out_channels, kernel_size, normalization, residual_block_multiplier),
+            ResnetConv2dBlock(out_channels, out_channels, kernel_size, normalization, residual_block_multiplier)
         )
         self.residual_block_3 = nn.Sequential(
             ResnetConv2dBlock(in_channels, out_channels, kernel_size, normalization, residual_block_multiplier),
@@ -132,11 +132,13 @@ class DuckConv2dBlock(nn.Module):
             ResnetConv2dBlock(out_channels, out_channels, kernel_size, normalization, residual_block_multiplier)
         )
         self.separated_block = SeparatedConv2dBlock(in_channels, out_channels, kernel_size, normalization)
+
         self.norm2 = Normalization(out_channels, normalization)
         self.duck_multiplier = duck_multiplier
 
     def forward(self, x):
         x = self.norm1(x)
+
         x1 = self.wide_scope(x)
         x2 = self.mid_scope(x)
         x3 = self.residual_block_1(x)
@@ -152,17 +154,19 @@ class DuckNet(nn.Module):
     def __init__(self, in_channels, out_channels, depth=5, init_features=32, normalization='batch',
                  interpolation='nearest', out_activation='sigmoid', use_multiplier=False):
         super(DuckNet, self).__init__()
-        duck_multiplier = 1.0
-        residual_block_multiplier = 1.0
-        self.addition_multiplier = 1.0
 
-        if use_multiplier:
+        duck_multiplier = 1.0  # multiplier for the duck block's addition operation
+        residual_block_multiplier = 1.0  # multiplier for the residual block's addition operation
+        self.addition_multiplier = 1.0  # multiplier in the encoder-decoder skip connection
+
+        if use_multiplier:  # use multiplier for numerical stability
             duck_multiplier = 1 / 6.0
             residual_block_multiplier = 0.5
             self.addition_multiplier = 0.5
 
         self.depth = depth
 
+        # Multi-scale blocks for input
         self.multi_scale_blocks = nn.ModuleList(
             [nn.Conv2d(in_channels, init_features * 2, kernel_size=2, stride=2, padding=0)])
         for d in range(1, depth):
@@ -246,7 +250,7 @@ class DuckNet(nn.Module):
         x = self.bottleneck(x)
 
         # decoder
-        for d in range(self.depth - 1, -1, -1):  # [depth-1, depth-2, ..., 0] # God fucking Dayum
+        for d in range(self.depth - 1, -1, -1):  # [depth-1, depth-2, ..., 0]
             x = self.up_blocks[d](x)
             x = self.addition_multiplier * (x + t[d])
             x = self.decoder_duck_blocks[d](x)

@@ -15,7 +15,7 @@ def predict(img, model):
         return (pred > 0.5).int()
 
 
-def calculate_dice_metric(model, test_loader, device, single_class=True):
+def calculate_dice_metric(model, test_loader, device, single_class=True, sigmoid=True):
     with torch.no_grad():
         model.eval()
         model.to(device)
@@ -26,7 +26,10 @@ def calculate_dice_metric(model, test_loader, device, single_class=True):
             (X, Y) = (X.to(device), Y.to(device))
 
             if single_class:
-                out = torch.sigmoid(model(X))
+                if sigmoid:
+                    out = torch.sigmoid(model(X))
+                else:
+                    out = model(X)
                 preds = (out > 0.5).int()
             else:
                 print("here")

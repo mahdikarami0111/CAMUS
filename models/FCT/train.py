@@ -1,30 +1,30 @@
-from models.DUCKnet.Ducknet import DuckNet
+import torch.nn as nn
+from models.FCT.FCT import FCT
 from dataset import CAMUS, Wrapper
 import torch
-import torch.nn as nn
 from torch.utils.data import random_split, Subset, DataLoader
 from config.DuckUnet_cfg import get_DuckNet_config
 from train import select_transform
+import torch.nn.functional as F
 from tqdm import tqdm
 import os
 from utils.save import save_model
-from torch.nn.modules.loss import BCELoss
+from torch.nn.modules.loss import BCEWithLogitsLoss
 from utils.losses import DiceLoss
-from eval.evaluation import calculate_dice_metric, avg_dice_metric_batch
+from eval.evaluation import calculate_dice_metric
 
 
 def train(cfg, preset_indices=None):
     dataset = CAMUS(cfg.data)
     batch_size = cfg.batch_size
     num_classes = cfg.num_classes
-    image_size = cfg.image_size
+    img_size = cfg.img_size
     epochs = cfg.max_epoch
     base_lr = cfg.lr
-
-    model = DuckNet(in_channels=1, out_channels=1, depth=5, init_features=32).cuda()
-    optimizer = torch.optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
-    loss_fn = DiceLoss(num_classes)
-
+    model = FCT(img_size).cuda()
+    optimizer = torch.optim.Adam(model.parameters(), lr=base_lr)
+    bce_loss = BCEWithLogitsLoss()
+    dice_loss = DiceLoss(num_classes)
     if preset_indices is None:
         train_, test, val = random_split(dataset, [cfg.train_split, cfg.test_split, cfg.val_split])
     else:
@@ -33,11 +33,9 @@ def train(cfg, preset_indices=None):
         val = Subset(dataset, preset_indices["val"])
     train_ = Wrapper(train_, select_transform(cfg.transform))
     val = Wrapper(val, select_transform('basic'))
-    test = Wrapper(test, select_transform('basic'))
 
     trainloader = DataLoader(train_, batch_size=batch_size, shuffle=True, pin_memory=True)
     valloader = DataLoader(val, batch_size=batch_size, shuffle=True, pin_memory=True)
-    testloader = DataLoader(test, batch_size=batch_size, shuffle=True, pin_memory=True)
 
     min_loss = 999999
     best_model = None
@@ -45,29 +43,36 @@ def train(cfg, preset_indices=None):
     for e in tqdm(range(epochs)):
         model.train()
         for i, sampled_batch in enumerate(trainloader):
-            image_batch, mask_batch = sampled_batch[0].to('cuda'), sampled_batch[1].to('cuda')
-            output = model(image_batch)
-            loss = loss_fn(output, mask_batch)
+            x, y = sampled_batch[0].to('cuda'), sampled_batch[1].to('cuda')
+            pred_y = model(x)
+            down1 = F.interpolate(y, model.img_size // 2)
+            down2 = F.interpolate(y, model.img_size // 4)
+            loss = (bce_loss(pred_y[2], y) * 0.57 + bce_loss(pred_y[1], down1) * 0.29 +
+                    bce_loss(pred_y[0], down2) * 0.14)
+            loss_ = dice_loss(pred_y[2], y)
+            loss = 0.5 * loss + 0.5 * loss_
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            if i % 25 == 0:
+            if i % 100 == 0:
                 print(f"iteration {i}/{len(trainloader)} total loss: {loss}")
+
 
         total_loss = 0
         with torch.no_grad():
             model.eval()
             for i, sampled_batch in enumerate(valloader):
-                image_batch, mask_batch = sampled_batch[0].to('cuda'), sampled_batch[1].to('cuda')
-                output = model(image_batch)
-                loss = loss_fn(output, mask_batch)
+                x, y = sampled_batch[0].to('cuda'), sampled_batch[1].to('cuda')
+                pred_y = model(x)
+                down1 = F.interpolate(y, model.img_size // 2)
+                down2 = F.interpolate(y, model.img_size // 4)
+                loss = (bce_loss(pred_y[2], y) * 0.57 + bce_loss(pred_y[1], down1) * 0.29 +
+                        bce_loss(pred_y[0], down2) * 0.14)
+                loss_ = dice_loss(pred_y[2], y)
+                loss = 0.5 * loss + 0.5 * loss_
                 total_loss += loss
-            total_loss /= len(val)
-            print(f"epoch {e}/{epochs} total loss: {total_loss}")
-            print(calculate_dice_metric(model, testloader, device="cuda", sigmoid=False))
-            if total_loss < min_loss:
-                min_loss = total_loss
-                save_model(model.state_dict(), f"{e}")
-                if best_model is not None:
-                    os.remove("models/trained_models/" + best_model + ".pth")
-                best_model = f"{e}"
+                print(f"epoch {e}/{epochs} total loss: {total_loss}")
+                print(calculate_dice_metric(model, trainloader, "cuda"))
+
+
+
