@@ -256,6 +256,7 @@ class DsOut(nn.Module):
         x1 = self.conv1(x1)
         x1 = self.conv2(x1)
         out = self.conv3(x1)
+        out = torch.sigmoid(out)
 
         return out
 
@@ -333,12 +334,3 @@ def init_weights(m):
         torch.nn.init.kaiming_normal(m.weight)
         if m.bias is not None:
             torch.nn.init.zeros_(m.bias)
-
-
-
-
-
-
-
-
-

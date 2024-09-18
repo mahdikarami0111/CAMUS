@@ -100,5 +100,5 @@ if __name__ == '__main__':
     # print(calculate_dice_metric(model, test_loader, 'cuda'))
     # ___________________________________________________
 
-    train_ducknet(get_DuckNet_train_config(), save.load_indices())
+    train_fct(get_FCT_config(), save.load_indices())
 
