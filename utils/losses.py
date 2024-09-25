@@ -17,9 +17,11 @@ class DiceLoss(nn.Module):
         loss = 1 - loss
         return loss
 
-    def forward(self, inputs, target, softmax=False, weight=None):
+    def forward(self, inputs, target, softmax=False, sigmoid=False, weight=None):
         if self.n_classes == 1:
             inputs = inputs.unsqueeze(dim=1)
+            if sigmoid:
+                inputs = torch.sigmoid(inputs)
         elif softmax == True:
             inputs = torch.softmax(inputs, dim=1)
         target = target.unsqueeze(dim=1)

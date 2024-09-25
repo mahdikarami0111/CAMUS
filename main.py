@@ -41,6 +41,10 @@ from config.DuckUnet_cfg import get_DuckNet_train_config
 from models.FCT.FCT import FCT
 from models.FCT.train import train as train_fct
 from config.FCT_cfg import get_FCT_config
+from models.TransAttUnet.transformer_parts import PositionEmbeddingLearned
+from models.TransAttUnet.TransAttUnet import TransAttUnet
+from models.TransAttUnet.train import train as train_trans_att_unet
+from config.TransAttUnet_cfg import get_TransAttUnet_train_config
 
 if __name__ == '__main__':
     # model = save.load_model("TransUnet", "transunetV2").to('cuda')
@@ -100,5 +104,5 @@ if __name__ == '__main__':
     # print(calculate_dice_metric(model, test_loader, 'cuda'))
     # ___________________________________________________
 
-    train_fct(get_FCT_config(), save.load_indices())
+    train_trans_att_unet(get_TransAttUnet_train_config(), save.load_indices("data"))
 

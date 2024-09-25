@@ -27,12 +27,12 @@ def calculate_dice_metric(model, test_loader, device, single_class=True, sigmoid
 
             if single_class:
                 if sigmoid:
-                    out = torch.sigmoid(model(X)[2])
+                    out = torch.sigmoid(model(X))
                 else:
-                    out = model(X)[2]
+                    out = model(X)
                 preds = (out > 0.5).int()
             else:
-                out = model(X)[2]
+                out = model(X)
                 preds = torch.log(softmax2d(out) + 1e-12)
                 preds = torch.log(softmax2d(preds) + 1e-12)
                 preds = preds.argmax(dim=1, keepdim=True)
