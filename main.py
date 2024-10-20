@@ -52,6 +52,7 @@ from skimage import data, img_as_float
 from skimage.util import random_noise
 from skimage.metrics import peak_signal_noise_ratio
 from models.WSegNet.WSegnet import WSegNetVGG, make_w_layers
+from models.WSegNet.WSegnetv2 import WSegNet
 
 
 
@@ -193,8 +194,11 @@ if __name__ == '__main__':
     # plt.show()
     # expand_series("data/database", "data/database_wavelet_VisuShrink_2", transform_method="VisuShrink", param=2)
     #______________________________________________________
-    cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
-    model = WSegNetVGG(make_w_layers(cfg, batch_norm=True))
+    cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M']
+    model = WSegNet(features=cfg, num_classes=1).cuda()
+
+    x = torch.rand((1, 3, 224, 224)).cuda()
+    print(model(x).shape)
 
 
 
