@@ -6,6 +6,11 @@ import glob
 import shutil
 import cv2
 
+from skimage.restoration import denoise_wavelet, estimate_sigma
+from skimage import data, img_as_float
+from skimage.util import random_noise
+from skimage.metrics import peak_signal_noise_ratio
+
 
 def check_dataset_integrity(data_path, print_results=False):
     log_entry = ""
@@ -81,7 +86,7 @@ def convert_dataset_to_jpg(source_path, dest_path, base_transform):
         convert_subject_to_jpg(os.path.join(source_path, subject), dest_path, base_transform)
 
 
-def expand_series(source_path, dest_path):
+def expand_series(source_path, dest_path, transform_method=None, param=None):
     os.mkdir(dest_path)
     subject_list = os.listdir(source_path)
     for subject in subject_list:
@@ -91,10 +96,40 @@ def expand_series(source_path, dest_path):
         series = f"{working_dir}/{subject}_4CH_half_sequence.nii"
         images = np.array(np.transpose(nib.load(series).get_fdata()))
         for i in range(images.shape[0]):
-            cv2.imwrite(f"{dest}/4CH_{i}_.jpg", images[i, :])
+            if transform_method is not None:
+                img = wavelet_denoise(images[i, :], transform_method, param)
+                cv2.imwrite(f"{dest}/4CH_{i}_.jpg", img)
+            else:
+                cv2.imwrite(f"{dest}/4CH_{i}_.jpg", images[i, :])
 
         series = f"{working_dir}/{subject}_4CH_half_sequence_gt.nii"
         images = np.array(np.transpose(nib.load(series).get_fdata()))
         for i in range(images.shape[0]):
             img = images[i, :] * 85
             cv2.imwrite(f"{dest}/4CH_{i}_gt.png", img)
+
+
+def wavelet_denoise(img, method, param):
+    img = np.stack((img,) * 3, axis=-1).astype(np.uint8)
+    noisy = img_as_float(img)
+    sigma_est = estimate_sigma(noisy, channel_axis=-1, average_sigmas=True)
+    if method == 'BayesShrink':
+        transformed = denoise_wavelet(
+            noisy,
+            channel_axis=-1,
+            convert2ycbcr=True,
+            method='BayesShrink',
+            mode='soft',
+            rescale_sigma=True,
+        )
+    else:
+        transformed = denoise_wavelet(
+            noisy,
+            channel_axis=-1,
+            convert2ycbcr=True,
+            method='VisuShrink',
+            mode='soft',
+            sigma=sigma_est * param,
+            rescale_sigma=True,
+        )
+    return (transformed[:, :, 0] * 255).astype(np.float64)

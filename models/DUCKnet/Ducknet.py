@@ -23,10 +23,10 @@ class SeparatedConv2dBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, normalization='batch'):
         super(SeparatedConv2dBlock, self).__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, (1,kernel_size), stride=1, padding='same'),
+            nn.Conv2d(in_channels, out_channels, (1, kernel_size), stride=1, padding='same'),
             nn.ReLU(),
             Normalization(out_channels, normalization),
-            nn.Conv2d(out_channels, out_channels, (kernel_size,1), stride=1, padding='same'),
+            nn.Conv2d(out_channels, out_channels, (kernel_size, 1), stride=1, padding='same'),
             nn.ReLU(),
             Normalization(out_channels, normalization)
         )
@@ -257,5 +257,3 @@ class DuckNet(nn.Module):
 
         x = self.out(x)
         return self.out_activation(x)
-
-

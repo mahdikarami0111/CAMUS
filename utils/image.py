@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def show_tensor_img(img, seg):
-    img = img.permute(1, 2, 0)
+    # img = img.permute(1, 2, 0)
     x_size = img.shape[1]
     y_size = img.shape[0]
-    seg = seg.squeeze(0)
+    # seg = seg.squeeze(0)
     seg_padded = np.pad(seg, 1)
     seg_padded = seg_padded.astype('uint8')
     f = plt.figure(figsize=(10, 10))

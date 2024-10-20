@@ -20,8 +20,8 @@ class PAM_Module(nn.Module):
         proj_query = self.query_conv(x).view(m_batchsize, -1, width * height).permute(0, 2, 1)
         proj_key = self.key_conv(x).view(m_batchsize, -1, width * height)
 
-        energy = torch.bmm(proj_query, proj_key)
-        attention = self.softmax(energy)
+        attention = torch.bmm(proj_query, proj_key)
+        attention = self.softmax(attention)
 
         proj_value = self.value_conv(x).view(m_batchsize, -1, width * height)
         out = torch.bmm(proj_value, attention.permute(0, 2, 1))
@@ -59,10 +59,10 @@ class PositionEmbeddingLearned(nn.Module):
 
 
 class ScaledDotProductAttention(nn.Module):
-    def __init__(self, temperature, attn_dropout=0.1):
+    def __init__(self, scale, attn_dropout=0.1):
         super(ScaledDotProductAttention, self).__init__()
         self.dropout = nn.Dropout(attn_dropout)
-        self.temperature = temperature ** 0.5
+        self.scale = scale ** 0.5
 
     def forward(self, x, mask=None):
         m_batchsize, d, height, width = x.size()
@@ -71,7 +71,7 @@ class ScaledDotProductAttention(nn.Module):
         k = k.permute(0, 2, 1)
         v = x.view(m_batchsize, d, -1)
 
-        attn = torch.matmul(q / self.temperature, k)
+        attn = torch.matmul(q / self.scale, k)
 
         if mask is not None:
             attn = attn.masked_fill(mask == 0, -1e9)
