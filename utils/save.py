@@ -31,9 +31,18 @@ def load_model(model_type, name):
     model.load_state_dict(torch.load(f"models/trained_models/{name}.pth"))
     return model
 
+
 def load_indices(root="data"):
     return {
         "train": np.loadtxt(f"{root}/train_indices.txt", dtype=int),
         "test": np.loadtxt(f"{root}/test_indices.txt", dtype=int),
         "val": np.loadtxt(f"{root}/val_indices.txt", dtype=int)
+    }
+
+
+def load_p_indices(root="data"):
+    return {
+        "train": np.loadtxt(f"{root}/train_P_indices.txt", dtype=int),
+        "test": np.loadtxt(f"{root}/test_P_indices.txt", dtype=int),
+        "val": np.loadtxt(f"{root}/val_P_indices.txt", dtype=int)
     }

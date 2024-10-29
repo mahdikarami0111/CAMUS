@@ -62,6 +62,17 @@ def unzip_subject(path, dest_path):
                     shutil.copyfileobj(zipped, unzipped)
 
 
+def copy_configs(src_path, dest_path):
+    for subject in os.listdir(src_path):
+        subject_src_path = f"{src_path}/{subject}"
+        src1 = open(subject_src_path + '/Info_2CH.cfg', 'rb')
+        src2 = open(subject_src_path + '/Info_4CH.cfg', 'rb')
+        subject_dest_path = f"{dest_path}/{subject}"
+        dest1 = open(subject_dest_path + '/Info_2CH.cfg', 'wb')
+        dest2 = open(subject_dest_path + '/Info_4CH.cfg', 'wb')
+        shutil.copyfileobj(src1, dest1)
+        shutil.copyfileobj(src2, dest2)
+
 def convert_subject_to_jpg(path, dest_path, base_transform):
     file_list = os.listdir(path)
     subject = path[-11:]

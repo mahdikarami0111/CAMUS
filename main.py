@@ -1,5 +1,12 @@
 # Based
+import copy
+import math
+
+import PIL.Image
+import albumentations
 import pywt
+from dataset import CAMUSP
+import numpy as np
 import os
 import cv2
 import matplotlib.pyplot as plt
@@ -46,13 +53,17 @@ from models.TransAttUnet.transformer_parts import PositionEmbeddingLearned
 from models.TransAttUnet.TransAttUnet import TransAttUnet
 from models.TransAttUnet.train import train as train_trans_att_unet
 from config.TransAttUnet_cfg import get_TransAttUnet_train_config
-from utils.wavelet import IDWT_2D
+from utils.wavelet import IDWT_2D, DWT_2D
 from skimage.restoration import denoise_wavelet, estimate_sigma
 from skimage import data, img_as_float
 from skimage.util import random_noise
 from skimage.metrics import peak_signal_noise_ratio
 from models.WSegNet.WSegnet import WSegNetVGG, make_w_layers
 from models.WSegNet.WSegnetv2 import WSegNet
+from models.train_unet import train as train_unet
+from config.Unet_cfg import get_config as get_unet_config
+from preprocess.preprocessor import copy_configs
+import random
 
 
 
@@ -115,90 +126,129 @@ if __name__ == '__main__':
     # ___________________________________________________
 
     # train_trans_att_unet(get_TransAttUnet_train_config(), save.load_indices("data"))
+    # ____________________________________________________
 
+    # Wavelet
     # dataset = CAMUS({
     #     "root": "data/database_expanded",
     #     "device": "cuda",
     #     "type": "N 4CH",
     # })
-    # img, mask = dataset[3526]
-    # show_tensor_img(img, mask)
-    # img = np.stack((img,)*3, axis=-1).astype(np.uint8)
-    # noisy = img_as_float(img)
+    # img, mask = dataset[9614]
+    # # show_tensor_img(img, mask)
+    # img1 = np.stack((img,)*3, axis=-1).astype(np.uint8)
+    # img = torch.from_numpy(img1).float()
     #
-    # fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(8, 5), sharex=True, sharey=True)
+    #
+    # img = img.permute(2, 0, 1)
+    # img = img.unsqueeze(0).cuda()
+    # #
+    # fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(16, 10), sharex=True, sharey=True)
     # plt.gray()
+    # dwt = DWT_2D(in_channels=3)
+    # ll, lh, hl, hh = dwt(img)
+    # ll = ll.squeeze(0).permute(1, 2, 0).cpu()
+    # ll = (ll - torch.min(ll)) / (torch.max(ll) - torch.min(ll))
+    # ll = np.array(ll)
     #
-    # sigma_est = estimate_sigma(noisy, channel_axis=-1, average_sigmas=True)
+    # lh = lh.squeeze(0).permute(1, 2, 0).cpu()
+    # t = torch.min(lh)
+    # m = torch.max(lh)
+    # lh = (lh - t) / (m - t)
+    # lh = np.array(lh)
     #
-    # im_bayes = denoise_wavelet(
-    #     noisy,
-    #     channel_axis=-1,
-    #     convert2ycbcr=True,
-    #     method='BayesShrink',
-    #     mode='soft',
-    #     rescale_sigma=True,
-    # )
-    # print(np.unique(im_bayes))
-    # im_visushrink = denoise_wavelet(
-    #     noisy,
-    #     channel_axis=-1,
-    #     convert2ycbcr=True,
-    #     method='VisuShrink',
-    #     mode='soft',
-    #     sigma=sigma_est * 8,
-    #     rescale_sigma=True,
-    # )
-    # im_visushrink2 = denoise_wavelet(
-    #     noisy,
-    #     channel_axis=-1,
-    #     convert2ycbcr=True,
-    #     method='VisuShrink',
-    #     mode='soft',
-    #     sigma=sigma_est / 2,
-    #     rescale_sigma=True,
-    # )
-    # im_visushrink4 = denoise_wavelet(
-    #     noisy,
-    #     channel_axis=-1,
-    #     convert2ycbcr=True,
-    #     method='VisuShrink',
-    #     mode='soft',
-    #     sigma=sigma_est / 4,
-    #     rescale_sigma=True,
-    # )
+    # hl = hl.squeeze(0).permute(1, 2, 0).cpu()
+    # t = (torch.min(hl))
+    # m = torch.max(hl)
+    # hl = torch.nn.functional.softshrink(hl, 5)
+    # hl = (hl - t) / (m - t)
+    # hl = np.array(hl)
     #
-    # ax[0, 0].imshow(noisy)
-    # ax[0, 0].axis('off')
-    # ax[0, 0].set_title('noisy')
+    # hh = hh.squeeze(0).permute(1, 2, 0).cpu()
+    # t = (torch.min(hh))
+    # m = torch.max(hh)
+    # hh = (hh - t) / (m - t)
+    # hh = np.array(hh)
     #
-    # ax[0, 1].imshow(im_bayes)
+    # print(ll.shape)
+    # ax[0,0].imshow(ll)
+    # ax[0,0].axis('off')
+    # ax[0,0].set_title('ll')
+    #
+    # ax[1,0].imshow(hl)
+    # ax[1,0].axis('off')
+    # ax[1,0].set_title('hl')
+    #
+    # ax[0, 1].imshow(lh)
     # ax[0, 1].axis('off')
-    # ax[0, 1].set_title('bayes')
+    # ax[0, 1].set_title('lh')
     #
-    # ax[1, 1].imshow(im_visushrink2)
+    # ax[1, 1].imshow(hh)
     # ax[1, 1].axis('off')
-    # ax[1, 1].set_title("v2")
-    #
-    # ax[1, 0].imshow(im_visushrink4)
-    # ax[1, 0].axis('off')
-    # ax[1, 0].set_title("v4")
-    #
-    # ax[1, 2].imshow(im_visushrink)
-    # ax[1, 2].axis('off')
-    # ax[1, 2].set_title("v")
-    #
-    # ax[0, 2].imshow(mask)
-    # ax[0, 2].axis('off')
-    # ax[0, 2].set_title("mask")
+    # ax[1, 1].set_title('hh')
     # plt.show()
-    # expand_series("data/database", "data/database_wavelet_VisuShrink_2", transform_method="VisuShrink", param=2)
-    #______________________________________________________
-    cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M']
-    model = WSegNet(features=cfg, num_classes=1).cuda()
 
-    x = torch.rand((1, 3, 224, 224)).cuda()
-    print(model(x).shape)
+    # train_unet(get_unet_config(), save.load_indices("data"))
+
+    dir = "data/database_expanded"
+    list = os.listdir(dir)
+    list.sort()
+    good = []
+    medium = []
+    poor = []
+
+    for i, subject in enumerate(list):
+        path = f"{dir}/{subject}"
+        with open(f"{path}/Info_4CH.cfg", 'r') as file:
+            for line in file:
+                key, value = line.strip().split(': ')
+                if key != "ImageQuality":
+                    continue
+                if value == "Good":
+                    good.append(i)
+                elif value == "Medium":
+                    medium.append(i)
+                elif value == "Poor":
+                    poor.append(i)
+    random.shuffle(good)
+    random.shuffle(medium)
+    random.shuffle(poor)
+
+    train = []
+    test = []
+    val = []
+
+    cur = good
+    l = len(cur)
+    tl = math.floor(l * 0.75)
+    vl = math.floor(l * 0.1)
+    train += cur[0:tl]
+    val += cur[tl:tl+vl]
+    test += cur[tl+vl:]
+
+    cur = medium
+    l = len(cur)
+    tl = math.floor(l * 0.75)
+    vl = math.ceil(l * 0.1)
+    train += cur[0:tl]
+    val += cur[tl:tl + vl]
+    test += cur[tl + vl:]
+
+    cur = poor
+    l = len(cur)
+    tl = math.floor(l * 0.75)
+    vl = math.ceil(l * 0.1)
+    train += cur[0:tl]
+    val += cur[tl:tl + vl]
+    test += cur[tl + vl:]
+
+    test = np.array(test)
+    val = np.array(val)
+    train = np.array(train)
+
+    np.savetxt("test_QP_indices.txt", test)
+    np.savetxt("val_QP_indices.txt", val)
+    np.savetxt("train_QP_indices.txt", train)
 
 
 

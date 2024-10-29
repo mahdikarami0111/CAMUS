@@ -65,7 +65,40 @@ class Wrapper(data.Dataset):
         return len(self.subset)
 
 
+class CAMUSP:
+    def __init__(self, dataset_cfg: dict, indices, filter=None):
+        self.root = dataset_cfg["root"]
+        self.device = dataset_cfg["device"]
+        self.type = dataset_cfg["type"]
+        self.filter = filter
+        self.indices = indices
+        self.data = self.get_data()
+        self.basic_transform = torch_transforms.ToTensor()
+        self.normalize = torch_transforms.Normalize([0.5], [0.5])
 
+    def get_data(self):
+        data_ = []
+        dataset_dir = self.root
+        subjects = os.listdir(dataset_dir)
+        subjects.sort()
+        indexed_subjects = [subjects[i] for i in self.indices]
+        for subject in indexed_subjects:
+            images = sorted(glob.glob(f"{dataset_dir}/{subject}/*_.jpg"))
+            masks = sorted(glob.glob(f"{dataset_dir}/{subject}/*_gt.png"))
+            for i in range(len(images)):
+                if images[i][-10:].split("_")[1] != masks[i][-12:].split("_")[1]:
+                    print("Error image and mask not matching")
+                    return None
+                data_.append((images[i], masks[i]))
+        return data_
+
+    def __getitem__(self, item):
+        img, mask = self.data[item]
+        img = np.array(Image.open(img), dtype=np.float32)
+        mask = np.array(Image.open(mask), dtype=np.float32)
+        mask = mask // 85
+        mask[mask != 1] = 0
+        return img, mask
 
 
 
