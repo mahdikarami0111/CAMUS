@@ -3,7 +3,7 @@ import torch.nn as nn
 import os
 from train import select_transform
 from dataset import CAMUSP, Wrapper
-from models.Unet import Unet
+from models.WSegNet.WSegnetv2 import WUNet
 from config.TransUnet_cfg import get_TransUnet_config
 from torch.utils.data import random_split
 from torch.utils.data import Subset
@@ -14,6 +14,7 @@ from torch.nn.functional import sigmoid
 import torch.nn.functional as F
 from tqdm import tqdm
 from utils.losses import DiceLoss
+from eval.evaluation import calculate_dice_metric
 
 
 def train(cfg, preset_indices=None):
@@ -23,7 +24,8 @@ def train(cfg, preset_indices=None):
     epochs = cfg.max_epoch
     base_lr = cfg.lr
 
-    model = Unet(1, 1).cuda()
+    model = WUNet(features=cfg.arch, num_classes=num_classes, in_channels=1).cuda()
+
     optimizer = torch.optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
     bce_loss = BCEWithLogitsLoss()
     dice_loss = DiceLoss(num_classes)
@@ -52,13 +54,13 @@ def train(cfg, preset_indices=None):
             image_batch, mask_batch = sampled_batch[0].to('cuda'), sampled_batch[1].to('cuda')
             outputs = model(image_batch)
             loss_ce = bce_loss(outputs, mask_batch)
-            loss_dice = dice_loss(outputs, mask_batch)
-            loss = 0.5 * loss_ce + 0.5 * loss_dice
+            # loss_dice = dice_loss(outputs, mask_batch)
+            loss = loss_ce
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             if i % 25 == 0 or i == len(valloader) - 1:
-                print(f"iteration {i}/{len(valloader) - 1} total loss: {loss} | dice: {loss_dice} | bce: {loss_ce}")
+                print(f"iteration {i}/{len(valloader) - 1} total loss: {loss} | bce: {loss_ce}")
 
         total_loss = 0
         with torch.no_grad():
@@ -67,15 +69,11 @@ def train(cfg, preset_indices=None):
                 image_batch, mask_batch = sampled_batch[0].to('cuda'), sampled_batch[1].to('cuda')
                 outputs = model(image_batch)
                 loss_ce = bce_loss(outputs, mask_batch)
-                loss_dice = dice_loss(outputs, mask_batch, softmax=True)
-                loss = 0.5 * loss_ce + 0.5 * loss_dice
+                # loss_dice = dice_loss(outputs, mask_batch, softmax=True)
+                loss = loss_ce
                 total_loss += loss
             total_loss /= len(val)
             print(f"epoch {e}/{epochs} total loss: {total_loss}")
-            if total_loss < min_loss:
-                min_loss = total_loss
-                save_model(model.state_dict(), f"{e}")
-                if best_model is not None:
-                    os.remove("models/trained_models/" + best_model+".pth")
-                best_model = f"{e}"
+            print(calculate_dice_metric(model, testloader, "cuda", sigmoid=True))
+
 

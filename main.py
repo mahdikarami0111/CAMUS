@@ -59,11 +59,14 @@ from skimage import data, img_as_float
 from skimage.util import random_noise
 from skimage.metrics import peak_signal_noise_ratio
 from models.WSegNet.WSegnet import WSegNetVGG, make_w_layers
-from models.WSegNet.WSegnetv2 import WSegNet
+from models.WSegNet.WSegnetv2 import WUNet
 from models.train_unet import train as train_unet
 from config.Unet_cfg import get_config as get_unet_config
 from preprocess.preprocessor import copy_configs
 import random
+from models.WSegNet.WSegnetv2 import WUNet
+from models.WSegNet.train import train as train_WaveUnet
+from config.WaveUnet import get_config as get_WaveUnet_config
 
 
 
@@ -190,65 +193,70 @@ if __name__ == '__main__':
 
     # train_unet(get_unet_config(), save.load_indices("data"))
 
-    dir = "data/database_expanded"
-    list = os.listdir(dir)
-    list.sort()
-    good = []
-    medium = []
-    poor = []
+    # dir = "data/database_expanded"
+    # list = os.listdir(dir)
+    # list.sort()
+    #
+    # good = []
+    # medium = []
+    # poor = []
+    #
+    # for i, subject in enumerate(list):
+    #
+    #     path = f"{dir}/{subject}"
+    #     with open(f"{path}/Info_4CH.cfg", 'r') as file:
+    #         for line in file:
+    #             key, value = line.strip().split(': ')
+    #             if key != "ImageQuality":
+    #                 continue
+    #             if value == "Good":
+    #                 good.append(i)
+    #             elif value == "Medium":
+    #                 medium.append(i)
+    #             elif value == "Poor":
+    #                 poor.append(i)
+    # random.shuffle(good)
+    # random.shuffle(medium)
+    # random.shuffle(poor)
+    #
+    # train = []
+    # test = []
+    # val = []
+    #
+    # cur = good
+    # l = len(cur)
+    # tl = math.floor(l * 0.75)
+    # vl = math.floor(l * 0.1)
+    # train += cur[0:tl]
+    # val += cur[tl:tl+vl]
+    # test += cur[tl+vl:]
+    #
+    # cur = medium
+    # l = len(cur)
+    # tl = math.floor(l * 0.75)
+    # vl = math.ceil(l * 0.1)
+    # train += cur[0:tl]
+    # val += cur[tl:tl + vl]
+    # test += cur[tl + vl:]
+    #
+    # cur = poor
+    # l = len(cur)
+    # tl = math.floor(l * 0.75)
+    # vl = math.ceil(l * 0.1)
+    # train += cur[0:tl]
+    # val += cur[tl:tl + vl]
+    # test += cur[tl + vl:]
+    #
+    # test = np.array(test)
+    # val = np.array(val)
+    # train = np.array(train)
+    #
+    # temp = save.load_QP_indices()
+    # print(temp["test"])
+    # ________________________________________________
 
-    for i, subject in enumerate(list):
-        path = f"{dir}/{subject}"
-        with open(f"{path}/Info_4CH.cfg", 'r') as file:
-            for line in file:
-                key, value = line.strip().split(': ')
-                if key != "ImageQuality":
-                    continue
-                if value == "Good":
-                    good.append(i)
-                elif value == "Medium":
-                    medium.append(i)
-                elif value == "Poor":
-                    poor.append(i)
-    random.shuffle(good)
-    random.shuffle(medium)
-    random.shuffle(poor)
+    train_WaveUnet(get_WaveUnet_config(), save.load_QP_indices())
 
-    train = []
-    test = []
-    val = []
-
-    cur = good
-    l = len(cur)
-    tl = math.floor(l * 0.75)
-    vl = math.floor(l * 0.1)
-    train += cur[0:tl]
-    val += cur[tl:tl+vl]
-    test += cur[tl+vl:]
-
-    cur = medium
-    l = len(cur)
-    tl = math.floor(l * 0.75)
-    vl = math.ceil(l * 0.1)
-    train += cur[0:tl]
-    val += cur[tl:tl + vl]
-    test += cur[tl + vl:]
-
-    cur = poor
-    l = len(cur)
-    tl = math.floor(l * 0.75)
-    vl = math.ceil(l * 0.1)
-    train += cur[0:tl]
-    val += cur[tl:tl + vl]
-    test += cur[tl + vl:]
-
-    test = np.array(test)
-    val = np.array(val)
-    train = np.array(train)
-
-    np.savetxt("test_QP_indices.txt", test)
-    np.savetxt("val_QP_indices.txt", val)
-    np.savetxt("train_QP_indices.txt", train)
 
 
 

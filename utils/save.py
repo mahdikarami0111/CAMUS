@@ -40,9 +40,9 @@ def load_indices(root="data"):
     }
 
 
-def load_p_indices(root="data"):
+def load_QP_indices(root="data"):
     return {
-        "train": np.loadtxt(f"{root}/train_P_indices.txt", dtype=int),
-        "test": np.loadtxt(f"{root}/test_P_indices.txt", dtype=int),
-        "val": np.loadtxt(f"{root}/val_P_indices.txt", dtype=int)
+        "train": np.loadtxt(f"{root}/train_QP_indices.txt", dtype=int),
+        "test": np.loadtxt(f"{root}/test_QP_indices.txt", dtype=int),
+        "val": np.loadtxt(f"{root}/val_QP_indices.txt", dtype=int)
     }

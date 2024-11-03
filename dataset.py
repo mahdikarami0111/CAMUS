@@ -1,6 +1,5 @@
 import glob
 import os
-
 import nibabel as nib
 import torchvision.transforms as torch_transforms
 import numpy as np
@@ -99,6 +98,9 @@ class CAMUSP:
         mask = mask // 85
         mask[mask != 1] = 0
         return img, mask
+
+    def __len__(self):
+        return len(self.data)
 
 
 

@@ -24,9 +24,9 @@ class UpSamplingIDWT(nn.Module):
         return torch.cat((self.idwt(LL, LH, HL, HH), feature_map), dim=1)
 
 
-class WSegNet(nn.Module):
+class WUNet(nn.Module):
     def __init__(self, features, num_classes=1, in_channels=3, init_weights=True, mother_wavelet='haar'):
-        super(WSegNet, self).__init__()
+        super(WUNet, self).__init__()
         self.classifier_seg = nn.Sequential(
             nn.Conv2d(64, num_classes, kernel_size=1, padding=0),
         )
@@ -35,13 +35,18 @@ class WSegNet(nn.Module):
         self.in_channels = in_channels
         self.encoder = nn.ModuleList(self.init_encoder())
         self.decoder = nn.ModuleList(self.init_decoder())
+        self.dr = nn.Dropout2d(0.4)
 
     def init_encoder(self):
         blocks = []
+        dropouts = [nn.Dropout2d(0.2), nn.Dropout2d(0.2), nn.Dropout2d(0.2), nn.Dropout2d(0.2)]
+        i = 0
         in_channels = self.in_channels
         for index, l in enumerate(self.features):
             if l == 'M':
                 blocks.append(DownSamplingDWT(wavename=self.wavename, in_channels=self.features[index-1]))
+                blocks.append(dropouts[i])
+                i += 1
             else:
                 blocks.append(nn.Sequential(
                     nn.Conv2d(in_channels, l, kernel_size=3, padding=1),
@@ -90,26 +95,16 @@ class WSegNet(nn.Module):
             else:
                 ll = module(ll)
 
-        # for i in wavelet_features:
-        #     for j in i:
-        #         print(j.shape)
-        #     print()
-        # print(ll.shape)
-
         for module in self.decoder:
             if isinstance(module, UpSamplingIDWT):
                 features = wavelet_features[index]
                 ll = module(ll, features[0], features[1], features[2], features[3])
-                # print(ll.shape)
-                # for i in features:
-                #     print(i.shape)
-                # print()
+
                 index += 1
             else:
                 ll = module(ll)
-            # print(ll.shape)
-            # print()
 
+        ll = self.dr(ll)
         return self.classifier_seg(ll)
 
 
