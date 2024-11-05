@@ -40,7 +40,7 @@ def select_scheduler(scheduler, optimizer):
 def select_transform(transform):
     t = None
     if transform == "default":
-        input_size = 224
+        input_size = 256
         t = A.Compose([
             A.HorizontalFlip(p=0.5),
             A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30, p=1.0),
@@ -48,7 +48,7 @@ def select_transform(transform):
             ToTensorV2(),
         ])
     elif transform == "basic":
-        input_size = 224
+        input_size = 256
         t = A.Compose([
             A.Resize(height=input_size, width=input_size),
             ToTensorV2(),
