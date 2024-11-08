@@ -64,7 +64,7 @@ from models.train_unet import train as train_unet
 from config.Unet_cfg import get_config as get_unet_config
 from preprocess.preprocessor import copy_configs
 import random
-from models.WSegNet.WSegnetv2 import WUNet
+from models.WSegNet.WUnetV2 import WUNet
 from models.WSegNet.train import train as train_WaveUnet
 from config.WaveUnet import get_config as get_WaveUnet_config
 
@@ -254,153 +254,166 @@ if __name__ == '__main__':
     # temp = save.load_QP_indices()
     # print(temp["test"])
 
-    def bayes_thresh(lh, hl, hh):
-        channels = lh.shape[1]
-        batch_size = lh.shape[0]
-        height = hh.shape[2]
-        width = hh.shape[3]
-        sigma = torch.median(torch.abs(hh.view(batch_size, channels, height * width)), dim=2)[0] / .6745
+    # _________________________________________________________________________
 
-        sigma_y = torch.stack((lh, hl, hh), dim=1).view(batch_size, 3, channels, height * width)
-        sigma_y = torch.mean(torch.pow(sigma_y, 2), dim=-1)
-
-        sigma = sigma.unsqueeze(dim=1)
-        sigma_x = torch.sqrt(torch.maximum(sigma_y - torch.pow(sigma, 2), torch.tensor(0.0001)))
-        T = torch.pow(sigma, 2) / sigma_x
-        return T
-
-    def denoise_wavelet(lh, hl, hh, T):
-        channels = lh.shape[1]
-        batch_size = lh.shape[0]
-        height = hh.shape[2]
-        width = hh.shape[3]
-        coeffs = torch.stack((lh, hl, hh), dim=1).view(batch_size, 3, channels, height * width)
-        m = torch.abs(coeffs)
-        T = T.unsqueeze(-1)
-        denom = m + (m < T).float()
-        gain = torch.maximum(m-T, torch.tensor(0))/denom
-        coeffs = (coeffs * gain).view(batch_size, 3, channels, height, width)
-        lh = coeffs[:, 0, :, :, :].squeeze(1)
-        hl = coeffs[:, 1, :, :, :].squeeze(1)
-        hh = coeffs[:, 2, :, :, :].squeeze(1)
-
-        return lh, hl, hh
-
-
-
-
-
-
-
-    dataset = CAMUS({
-        "root": "data/database_expanded",
-        "device": "cuda",
-        "type": "N 4CH",
-    })
-    dataset = Wrapper(dataset, transform=select_transform('basic'))
-    img, mask = dataset[9614]
-    img2, mask2 = dataset[2263]
-    img3, mask3 = dataset[4562]
-    img4, mask4 = dataset[6732]
-    # show_tensor_img(img, mask)
-
-    img = torch.stack((img, img2, img3, img4)).cuda()
-    img = torch.cat((img, img, img), dim=1).cuda()
-    # print(img.shape)
-
+    # def bayes_thresh(lh, hl, hh):
+    #     channels = lh.shape[1]
+    #     batch_size = lh.shape[0]
+    #     height = hh.shape[2]
+    #     width = hh.shape[3]
+    #     sigma = torch.median(torch.abs(hh.view(batch_size, channels, height * width)), dim=2)[0] / .6745
     #
-    # fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(16, 10), sharex=True, sharey=True)
+    #     sigma_y = torch.stack((lh, hl, hh), dim=1).view(batch_size, 3, channels, height * width)
+    #     sigma_y = torch.mean(torch.pow(sigma_y, 2), dim=-1)
+    #
+    #     sigma = sigma.unsqueeze(dim=1)
+    #     sigma_x = torch.sqrt(torch.maximum(sigma_y - torch.pow(sigma, 2), torch.tensor(0.001)))
+    #     T = torch.pow(sigma, 2) / sigma_x
+    #     return T
+    #
+    # def denoise_wavelet(lh, hl, hh, T):
+    #     channels = lh.shape[1]
+    #     batch_size = lh.shape[0]
+    #     height = hh.shape[2]
+    #     width = hh.shape[3]
+    #     coeffs = torch.stack((lh, hl, hh), dim=1).view(batch_size, 3, channels, height * width)
+    #     m = torch.abs(coeffs)
+    #     T = T.unsqueeze(-1)
+    #     denom = m + (m < T).float()
+    #     gain = torch.maximum(m-T, torch.tensor(0))/denom
+    #     coeffs = (coeffs * gain).view(batch_size, 3, channels, height, width)
+    #     lh = coeffs[:, 0, :, :, :].squeeze(1)
+    #     hl = coeffs[:, 1, :, :, :].squeeze(1)
+    #     hh = coeffs[:, 2, :, :, :].squeeze(1)
+    #
+    #     return lh, hl, hh
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    # dataset = CAMUS({
+    #     "root": "data/database_expanded",
+    #     "device": "cuda",
+    #     "type": "N 4CH",
+    # })
+    # dataset = Wrapper(dataset, transform=select_transform('basic'))
+    # img, mask = dataset[9614]
+    # img2, mask2 = dataset[2263]
+    # img3, mask3 = dataset[4562]
+    # img4, mask4 = dataset[6732]
     # plt.gray()
-    dwt = DWT_2D(in_channels=3)
-    ll, lh, hl, hh = dwt(img)
-    T = bayes_thresh(lh, hl, hh)
-    lh_, hl, hh = denoise_wavelet(lh, hl, hh, T)
+    # plt.imshow(np.array(img.permute(1, 2, 0).cpu()))
+    # plt.show()
+    #
+    #
+    # img = torch.stack((img, img2, img3, img4)).cuda()
+    # img = torch.cat((img, img, img), dim=1).cuda()
+    # # print(img.shape)
+    #
+    # #
+    # # fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(16, 10), sharex=True, sharey=True)
+    # # plt.gray()
+    # dwt = DWT_2D(in_channels=3)
+    # idwt = IDWT_2D(in_channels=3)
+    # ll, lh, hl, hh = dwt(img)
+    # images = idwt(ll, lh, hl, hh)
+    #
+    #
+    # T = bayes_thresh(lh, hl, hh)
+    # lh, hl, hh = denoise_wavelet(lh, hl, hh, T)
+    #
+    #
+    # plt.gray()
+    # img = images[0].squeeze(0)
+    # img = (img - torch.min(img)) / (torch.max(img) - torch.min(img)) * 255
+    # plt.imshow(np.array(img.permute(1, 2, 0).cpu().int()))
+    # plt.show()
+    # ______________________________________________________________________________
 
 
 
-    npimg = np.asarray(img2)
-    npimg = npimg.transpose((1, 2, 0))
-    npimg = np.concatenate((npimg,)*3, axis=-1).astype(np.uint8)
-    coeffs = pywt.wavedec2(npimg, 'haar', axes=(0, 1), level=1)
-
-    temp = torch.cat((img2.unsqueeze(0).cuda(),)*3, dim=1)
-    ll, lh, hl, hh = dwt(temp)
-    ll = ll.squeeze(0).permute(1, 2, 0).cpu()
-    ll = np.array(ll)
-    lh = lh.squeeze(0).permute(1, 2, 0).cpu()
-    lh = np.array(lh)
-    hl = hl.squeeze(0).permute(1, 2, 0).cpu()
-    hl = np.array(hl)
-    hh = hh.squeeze(0).permute(1, 2, 0).cpu()
-    hh = np.array(hh)
-    coeffs = [ll, [lh, hl, hh]]
-
-    bandpasses = coeffs[1:]
-    C = 3
-    σ = np.zeros((C))
-    for c in range(C):
-        σ[c] = np.median(np.abs(bandpasses[0][2][:, :, c].ravel())) / .6745
-    σ = σ.reshape(1, 1, C)
-
-    # Estimate the variance of the noisy signal for each subband, scale and channel
-    σy2 = np.zeros((1, 3, C))
-    for j in range(1):
-        for b in (0, 1, 2):
-            for c in range(C):
-                σy2[j, b, c] = np.mean(bandpasses[j][b][:, :, c] ** 2)
-
-    # Calculate σ_x = sqrt(σ_y^2 - σ^2) for each subband, scale and channel
-    σx = np.sqrt(np.maximum(σy2 - σ ** 2, 0.0001))
-
-    # Calculate T
-    T = (σ ** 2) / σx
-
-
-    def shrink(x: np.ndarray, t: float):
-        """ Given a wavelet coefficient and a threshold, shrink """
-        if t == 0:
-            return x
-        m = np.abs(x)
-        denom = m + (m < t).astype('float')
-        gain = np.maximum(m - t, 0) / denom
-        return x * gain
-
-
-    def shrink_coeffs(coeffs: np.ndarray, T: np.ndarray):
-        """ Shrink the wavelet coefficients with the thresholds T.
-
-        coeffs should be the output of pywt.wavedec (list of numpy arrays)
-        T should be an array of shape (J, 3, C) for color images.
-        """
-        assert T.shape[0] == len(coeffs) - 1
-        J = len(coeffs) - 1
-        assert T.shape[1] == len(coeffs[1])
-        assert T.shape[2] == len(coeffs[1][0][0, 0])
-        C = T.shape[2]
-
-        coeffs_new = [None, ] * (J + 1)
-        coeffs_new[0] = np.copy(coeffs[0])
-        for j in range(J):
-            coeffs_new[1 + j] = [np.zeros_like(coeffs[1 + j][0]),
-                                 np.zeros_like(coeffs[1 + j][1]),
-                                 np.zeros_like(coeffs[1 + j][2])]
-            for b, band in enumerate(['LH', 'HL', 'HH']):
-                for c in range(C):
-                    temp = shrink(coeffs[1 + j][b][:, :, c], T[j, b, c])
-                    coeffs_new[1 + j][b][:, :, c] = temp
-
-        return coeffs_new
-
-
-    l = shrink_coeffs(coeffs, T)
-    lh = l[1][0]
-    lh_ = lh_[1, :, :, :].squeeze(0).permute(1, 2, 0).cpu()
-    lh_ = np.array(lh_)
-    print(np.max(lh_))
-    print(np.min(lh_))
-    distance = lh - lh_
-    print(np.max(distance))
-    print(np.min(distance))
+    # temp = torch.cat((img2.unsqueeze(0).cuda(),)*3, dim=1)
+    # ll, lh, hl, hh = dwt(temp)
+    # ll = ll.squeeze(0).permute(1, 2, 0).cpu()
+    # ll = np.array(ll)
+    # lh = lh.squeeze(0).permute(1, 2, 0).cpu()
+    # lh = np.array(lh)
+    # hl = hl.squeeze(0).permute(1, 2, 0).cpu()
+    # hl = np.array(hl)
+    # hh = hh.squeeze(0).permute(1, 2, 0).cpu()
+    # hh = np.array(hh)
+    # coeffs = [ll, [lh, hl, hh]]
+    #
+    # bandpasses = coeffs[1:]
+    # C = 3
+    # σ = np.zeros((C))
+    # for c in range(C):
+    #     σ[c] = np.median(np.abs(bandpasses[0][2][:, :, c].ravel())) / .6745
+    # σ = σ.reshape(1, 1, C)
+    #
+    # # Estimate the variance of the noisy signal for each subband, scale and channel
+    # σy2 = np.zeros((1, 3, C))
+    # for j in range(1):
+    #     for b in (0, 1, 2):
+    #         for c in range(C):
+    #             σy2[j, b, c] = np.mean(bandpasses[j][b][:, :, c] ** 2)
+    #
+    # # Calculate σ_x = sqrt(σ_y^2 - σ^2) for each subband, scale and channel
+    # σx = np.sqrt(np.maximum(σy2 - σ ** 2, 0.0001))
+    #
+    # # Calculate T
+    # T = (σ ** 2) / σx
+    #
+    #
+    # def shrink(x: np.ndarray, t: float):
+    #     """ Given a wavelet coefficient and a threshold, shrink """
+    #     if t == 0:
+    #         return x
+    #     m = np.abs(x)
+    #     denom = m + (m < t).astype('float')
+    #     gain = np.maximum(m - t, 0) / denom
+    #     return x * gain
+    #
+    #
+    # def shrink_coeffs(coeffs: np.ndarray, T: np.ndarray):
+    #     """ Shrink the wavelet coefficients with the thresholds T.
+    #
+    #     coeffs should be the output of pywt.wavedec (list of numpy arrays)
+    #     T should be an array of shape (J, 3, C) for color images.
+    #     """
+    #     assert T.shape[0] == len(coeffs) - 1
+    #     J = len(coeffs) - 1
+    #     assert T.shape[1] == len(coeffs[1])
+    #     assert T.shape[2] == len(coeffs[1][0][0, 0])
+    #     C = T.shape[2]
+    #
+    #     coeffs_new = [None, ] * (J + 1)
+    #     coeffs_new[0] = np.copy(coeffs[0])
+    #     for j in range(J):
+    #         coeffs_new[1 + j] = [np.zeros_like(coeffs[1 + j][0]),
+    #                              np.zeros_like(coeffs[1 + j][1]),
+    #                              np.zeros_like(coeffs[1 + j][2])]
+    #         for b, band in enumerate(['LH', 'HL', 'HH']):
+    #             for c in range(C):
+    #                 temp = shrink(coeffs[1 + j][b][:, :, c], T[j, b, c])
+    #                 coeffs_new[1 + j][b][:, :, c] = temp
+    #
+    #     return coeffs_new
+    #
+    #
+    # l = shrink_coeffs(coeffs, T)
+    # lh = l[1][0]
+    # lh_ = lh_[1, :, :, :].squeeze(0).permute(1, 2, 0).cpu()
+    # lh_ = np.array(lh_)
+    # print(np.max(lh_))
+    # print(np.min(lh_))
+    # distance = lh - lh_
+    # print(np.max(distance))
+    # print(np.min(distance))
+    #_____
 
 
 
@@ -445,6 +458,8 @@ if __name__ == '__main__':
     # ax[1, 1].axis('off')
     # ax[1, 1].set_title('hh')
     # plt.show()
+
+    train_WaveUnet(get_WaveUnet_config(), save.load_QP_indices())
 
 
 

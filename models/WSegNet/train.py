@@ -3,7 +3,7 @@ import torch.nn as nn
 import os
 from train import select_transform
 from dataset import CAMUSP, Wrapper
-from models.WSegNet.WSegnetv2 import WUNet
+from models.WSegNet.WUnetV2 import WUNet
 from config.TransUnet_cfg import get_TransUnet_config
 from torch.utils.data import random_split
 from torch.utils.data import Subset
