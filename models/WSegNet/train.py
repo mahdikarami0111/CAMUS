@@ -17,6 +17,7 @@ from albumentations.pytorch import ToTensorV2
 from utils.losses import DiceLoss
 from eval.evaluation import calculate_dice_metric
 from models.UneXt.UneXt import UneXt
+from models.Unet import Unet
 
 
 def select_transform(transform):
@@ -47,7 +48,7 @@ def train(cfg, preset_indices=None):
     epochs = cfg.max_epoch
     base_lr = cfg.lr
 
-    model = UneXt(in_chans=1).cuda()
+    model = Unet(1, 1).cuda()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
@@ -78,7 +79,7 @@ def train(cfg, preset_indices=None):
             image_batch, mask_batch = sampled_batch[0].to('cuda'), sampled_batch[1].to('cuda')
             outputs = model(image_batch)
             loss_ce = bce_loss(outputs, mask_batch)
-            # loss_dice = dice_loss(outputs, mask_batch)
+            loss_dice = dice_loss(outputs, mask_batch, sigmoid=True)
             loss = loss_ce
             optimizer.zero_grad()
             loss.backward()
@@ -95,7 +96,7 @@ def train(cfg, preset_indices=None):
                 image_batch, mask_batch = sampled_batch[0].to('cuda'), sampled_batch[1].to('cuda')
                 outputs = model(image_batch)
                 loss_ce = bce_loss(outputs, mask_batch)
-                # loss_dice = dice_loss(outputs, mask_batch, softmax=True)
+                loss_dice = dice_loss(outputs, mask_batch, sigmoid=True)
                 loss = loss_ce
                 total_loss += loss
             total_loss /= len(val)
