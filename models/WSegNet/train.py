@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import os
-from train import select_transform
 from dataset import CAMUSP, Wrapper
 from models.WSegNet.WUnetV2 import WUNet
 from config.TransUnet_cfg import get_TransUnet_config
@@ -13,9 +12,30 @@ from utils.save import save_model
 from torch.nn.functional import sigmoid
 import torch.nn.functional as F
 from tqdm import tqdm
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 from utils.losses import DiceLoss
 from eval.evaluation import calculate_dice_metric
 from models.UneXt.UneXt import UneXt
+
+
+def select_transform(transform):
+    t = None
+    if transform == "default":
+        input_size = 256
+        t = A.Compose([
+            A.HorizontalFlip(p=0.5),
+            A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30, p=1.0),
+            A.Resize(height=input_size, width=input_size),
+            ToTensorV2(),
+        ])
+    elif transform == "basic":
+        input_size = 256
+        t = A.Compose([
+            A.Resize(height=input_size, width=input_size),
+            ToTensorV2(),
+        ])
+    return t
 
 
 def train(cfg, preset_indices=None):
