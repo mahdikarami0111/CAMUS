@@ -51,7 +51,7 @@ def train(cfg, preset_indices=None):
     model = Unet(1, 1).cuda()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.8)
     bce_loss = BCEWithLogitsLoss()
     dice_loss = DiceLoss(num_classes)
 
@@ -86,8 +86,10 @@ def train(cfg, preset_indices=None):
             optimizer.step()
             if i % 25 == 0 or i == len(trainloader) - 1:
                 print(f"iteration {i}/{len(trainloader) - 1} total loss: {loss} | bce: {loss_ce}")
-        scheduler.step()
-        print(scheduler.get_lr())
+
+        if e % 5 == 0:
+            scheduler.step()
+            print(scheduler.get_lr())
 
         total_loss = 0
         with torch.no_grad():
