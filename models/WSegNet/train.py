@@ -27,12 +27,14 @@ def select_transform(transform):
             A.HorizontalFlip(p=0.5),
             A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30, p=1.0),
             A.Resize(height=input_size, width=input_size),
+            A.GaussNoise(),
             ToTensorV2(),
         ])
     elif transform == "basic":
         input_size = 256
         t = A.Compose([
             A.Resize(height=input_size, width=input_size),
+            A.GaussNoise(),
             ToTensorV2(),
         ])
     return t
