@@ -15,6 +15,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from utils.losses import DiceLoss
 from eval.evaluation import calculate_dice_metric
+from models.UneXt.UneXt import UneXt
 
 
 def train(cfg, preset_indices=None):
@@ -24,9 +25,10 @@ def train(cfg, preset_indices=None):
     epochs = cfg.max_epoch
     base_lr = cfg.lr
 
-    model = WUNet(features=cfg.arch, num_classes=num_classes, in_channels=1).cuda()
+    model = UneXt(in_chans=1).cuda()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
     bce_loss = BCEWithLogitsLoss()
     dice_loss = DiceLoss(num_classes)
 
@@ -59,8 +61,10 @@ def train(cfg, preset_indices=None):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            if i % 25 == 0 or i == len(valloader) - 1:
-                print(f"iteration {i}/{len(valloader) - 1} total loss: {loss} | bce: {loss_ce}")
+            if i % 25 == 0 or i == len(trainloader) - 1:
+                print(f"iteration {i}/{len(trainloader) - 1} total loss: {loss} | bce: {loss_ce}")
+        scheduler.step()
+        print(scheduler.get_lr())
 
         total_loss = 0
         with torch.no_grad():
