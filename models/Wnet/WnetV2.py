@@ -1,10 +1,10 @@
 import torch.nn as nn
 import torch
-from timm.models.layers import DropPath
+import torch.nn.functional as F
 
 
 class DoubleConv(nn.Module):
-    def __init__(self, in_channels, out_channels, mid_channels=None, drp_rt=0.2):
+    def __init__(self, in_channels, out_channels, mid_channels=None):
         super(DoubleConv, self).__init__()
         if mid_channels is None:
             mid_channels = out_channels
@@ -17,10 +17,9 @@ class DoubleConv(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
-        self.drop_path = DropPath(drop_prob=drp_rt)
 
     def forward(self, x):
-        return self.drop_path(self.double_conv(x))
+        return self.double_conv(x)
 
 
 class Down(nn.Module):
@@ -46,7 +45,7 @@ class Up(nn.Module):
             self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
             self.conv = DoubleConv(in_channels, out_channels)
 
-    def forward(self, x1, x2=None):
+    def forward(self, x1, x2):
         x1 = self.up(x1)
         # diffY = x2.size()[2] - x1.size()[2]
         # diffX = x2.size()[3] - x1.size()[3]
@@ -86,19 +85,18 @@ class Decoder(nn.Module):
 
         return x
 
-
-
-# enc1 = [64, 128, 256, 512, 1024]
-# b1 = 512
-# dec1 = [512, 256, 128]
+# enc1 = [64, 128, 256, 512]
+# b1 = 256
+# dec1 = [256, 128]
 # b2 = 256
 # enc2 = [128, 256, 512, 1024]
 # b3 = 512
 # dec2 = [512, 256, 128, 64]
 
-class Wnet(nn.Module):
+
+class WnetV2(nn.Module):
     def __init__(self, in_channels, num_classes, enc_dims, bottleneck_dims, dec_dims):
-        super(Wnet, self).__init__()
+        super(WnetV2, self).__init__()
         self.stem = DoubleConv(in_channels=in_channels, out_channels=enc_dims[0][0])
 
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
@@ -128,7 +126,7 @@ class Wnet(nn.Module):
         stem = self.stem(x)
         x, skips_1 = self.enc1(stem)
         x = self.bn1(x)
-        x = self.dec1(x, [skips_1[2], skips_1[1]])
+        x = self.dec1(x, [skips_1[1]])
 
         bn = self.up(x)
         bn = torch.cat([bn, skips_1[0]], dim=1)
