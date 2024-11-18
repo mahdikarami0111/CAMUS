@@ -58,15 +58,17 @@ from skimage.restoration import denoise_wavelet, estimate_sigma
 from skimage import data, img_as_float
 from skimage.util import random_noise
 from skimage.metrics import peak_signal_noise_ratio
-from models.WSegNet.WSegnet import WSegNetVGG, make_w_layers
-from models.WSegNet.WSegnetv2 import WUNet
+from models.WaveSegNet.WSegnet import WSegNetVGG, make_w_layers
+from models.WaveSegNet.WSegnetv2 import WUNet
 from models.train_unet import train as train_unet
 from config.Unet_cfg import get_config as get_unet_config
 from preprocess.preprocessor import copy_configs
 import random
-from models.WSegNet.WUnetV2 import WUNet
-from models.WSegNet.train import train as train_WaveUnet
+from models.WaveSegNet.WUnetV2 import WUNet
+from models.WaveSegNet.train import train as train_WaveUnet
 from config.WaveUnet import get_config as get_WaveUnet_config
+from models.Wnet.train_Wnet import train as train_Wnet
+from config.Wnet_cfg import get_config as get_Wnet_cfg
 
 
 
@@ -459,7 +461,10 @@ if __name__ == '__main__':
     # ax[1, 1].set_title('hh')
     # plt.show()
 
-    train_WaveUnet(get_WaveUnet_config(), save.load_QP_indices())
+    # train_WaveUnet(get_WaveUnet_config(), save.load_QP_indices())
+
+    train_Wnet(get_Wnet_cfg(), save.load_QP_indices())
+
 
 
 

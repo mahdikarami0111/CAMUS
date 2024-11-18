@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import os
 from dataset import CAMUSP, Wrapper
-from models.WSegNet.WUnetV2 import WUNet
 from config.TransUnet_cfg import get_TransUnet_config
 from torch.utils.data import random_split
 from torch.utils.data import Subset
@@ -16,8 +15,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from utils.losses import DiceLoss
 from eval.evaluation import calculate_dice_metric
-from models.UneXt.UneXt import UneXt
-from models.Unet import Unet
+from models.Wnet.Wnet import Wnet
 
 
 def select_transform(transform):
@@ -28,14 +26,12 @@ def select_transform(transform):
             A.HorizontalFlip(p=0.5),
             A.ShiftScaleRotate(shift_limit=0.1, scale_limit=0.2, rotate_limit=30, p=1.0),
             A.Resize(height=input_size, width=input_size),
-            A.GaussNoise(),
             ToTensorV2(),
         ])
     elif transform == "basic":
         input_size = 256
         t = A.Compose([
             A.Resize(height=input_size, width=input_size),
-            A.GaussNoise(),
             ToTensorV2(),
         ])
     return t
@@ -48,7 +44,8 @@ def train(cfg, preset_indices=None):
     epochs = cfg.max_epoch
     base_lr = cfg.lr
 
-    model = Unet(1, 1).cuda()
+    model = Wnet(in_channels=num_classes, enc_dims=cfg.enc_arch, dec_dims=cfg.dec_arch,
+                 bottleneck_dims=cfg.bn_arch, num_classes=num_classes).cuda()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.8)
@@ -104,5 +101,3 @@ def train(cfg, preset_indices=None):
             total_loss /= len(val)
             print(f"epoch {e}/{epochs} total loss: {total_loss}")
             print(calculate_dice_metric(model, testloader, "cuda", sigmoid=True))
-
-
