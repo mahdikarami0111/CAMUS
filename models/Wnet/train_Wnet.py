@@ -15,7 +15,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from utils.losses import DiceLoss
 from eval.evaluation import calculate_dice_metric
-from models.Wnet.Wnet import Wnet
+from models.Wnet.WnetV3 import WnetV3 as Wnet
 
 
 def select_transform(transform):
@@ -45,7 +45,7 @@ def train(cfg, preset_indices=None):
     base_lr = cfg.lr
 
     model = Wnet(in_channels=num_classes, enc_dims=cfg.enc_arch, dec_dims=cfg.dec_arch,
-                 bottleneck_dims=cfg.bn_arch, num_classes=num_classes).cuda()
+                   bottleneck_dims=cfg.bn_arch, num_classes=num_classes).cuda()
 
     optimizer = torch.optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=0.0001)
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.8)
@@ -74,7 +74,7 @@ def train(cfg, preset_indices=None):
         model.train()
         for i, sampled_batch in enumerate(trainloader):
             image_batch, mask_batch = sampled_batch[0].to('cuda'), sampled_batch[1].to('cuda')
-            outputs = model(image_batch)
+            outputs = model(image_batch)[0]
             loss_ce = bce_loss(outputs, mask_batch)
             loss_dice = dice_loss(outputs, mask_batch, sigmoid=True)
             loss = loss_ce
@@ -95,7 +95,6 @@ def train(cfg, preset_indices=None):
                 image_batch, mask_batch = sampled_batch[0].to('cuda'), sampled_batch[1].to('cuda')
                 outputs = model(image_batch)
                 loss_ce = bce_loss(outputs, mask_batch)
-                loss_dice = dice_loss(outputs, mask_batch, sigmoid=True)
                 loss = loss_ce
                 total_loss += loss
             total_loss /= len(val)

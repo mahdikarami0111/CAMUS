@@ -10,9 +10,9 @@ def get_config():
     }
     config.batch_size = 2
     config.num_classes = 1
-    config.enc_arch = [[64, 128, 256, 512, 1024], [128, 256, 512, 1024]]
-    config.dec_arch = [[512, 256, 128], [512, 256, 128, 64, 32]]
-    config.bn_arch = [512, 128, 512]
+    config.enc_arch = [[64, 128, 256, 512], [128, 256, 512, 1024]]
+    config.dec_arch = [[256, 128], [512, 256, 128, 64, 32]]
+    config.bn_arch = [256, 128, 512]
     config.image_size = 256
     config.max_epoch = 50
     config.lr = 0.05
